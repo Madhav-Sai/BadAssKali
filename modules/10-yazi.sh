@@ -4,6 +4,7 @@ set -euo pipefail
 
 # shellcheck disable=SC1091
 source "$HOME/.cargo/env" 2>/dev/null || true
+
 export PATH="$HOME/.cargo/bin:$PATH"
 
 GREEN="\033[0;32m"
@@ -41,7 +42,9 @@ if command -v yazi >/dev/null 2>&1; then
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
+
     fail "Cargo not found. Run 06-rust.sh first."
+
 fi
 
 echo
@@ -64,13 +67,23 @@ export TMPDIR="$HOME/cargo-build"
 export CARGO_TARGET_DIR="$HOME/cargo-build/target"
 export CARGO_BUILD_JOBS=1
 
+log "Installing Yazi build helper..."
+
+cargo install \
+    --locked \
+    --force \
+    yazi-build
+
 log "Installing Yazi..."
 
 if cargo install \
     --locked \
-    yazi-fm \
-    yazi-cli
+    yazi-fm
 then
+
+    cargo install \
+        --locked \
+        yazi-cli
 
     log "Yazi installed successfully."
 
@@ -96,8 +109,14 @@ if command -v yazi >/dev/null 2>&1; then
 
     yazi --version
 
-else
+elif command -v ranger >/dev/null 2>&1; then
 
     echo "Ranger installed as fallback."
 
+else
+
+    warn "Neither Yazi nor Ranger available."
+
 fi
+
+echo
