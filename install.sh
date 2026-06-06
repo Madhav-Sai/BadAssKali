@@ -35,7 +35,6 @@ echo
 
 finish() {
 
-```
 END_TIME=$(date +%s)
 ELAPSED=$((END_TIME - START_TIME))
 
@@ -74,7 +73,6 @@ echo "  p10k configure"
 echo "  atuin import auto"
 echo "  ./verify.sh"
 echo
-```
 
 }
 
@@ -84,11 +82,9 @@ banner
 
 if [[ ! -d "$ROOT_DIR/modules" ]]; then
 
-```
 error "modules directory not found."
 
 exit 1
-```
 
 fi
 
@@ -113,11 +109,9 @@ CONFIRM=${CONFIRM:-Y}
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
 
-```
 warn "Installation cancelled."
 
 exit 0
-```
 
 fi
 
@@ -126,7 +120,6 @@ echo
 for module in "$ROOT_DIR"/modules/*.sh
 do
 
-```
 MODULE_NAME=$(basename "$module")
 
 echo
@@ -146,7 +139,6 @@ else
     FAILED+=("$MODULE_NAME")
 
 fi
-```
 
 done
 
@@ -154,14 +146,10 @@ echo
 
 if [[ ${#FAILED[@]} -eq 0 ]]; then
 
-```
 log "All modules completed successfully."
-```
 
 else
 
-```
 warn "Some modules failed."
-```
 
 fi
