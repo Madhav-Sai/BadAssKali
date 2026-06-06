@@ -70,6 +70,10 @@ command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# History substring search
+bindkey "^[[A" history-substring-search-up
+bindkey "^[[B" history-substring-search-down
+
 # User aliases
 [ -f ~/.aliases ] && source ~/.aliases
 
@@ -78,9 +82,13 @@ HISTSIZE=100000
 SAVEHIST=100000
 HISTFILE=~/.zsh_history
 
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
 setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_SPACE
-setopt SHARE_HISTORY
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_REDUCE_BLANKS
 
 # Disable annoying autocorrect
 unsetopt correct
