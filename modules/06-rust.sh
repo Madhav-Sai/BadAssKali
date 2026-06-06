@@ -55,6 +55,11 @@ source "$HOME/.cargo/env"
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Persist Cargo PATH for future shells
+if ! grep -q '.cargo/bin' "$HOME/.zshrc" 2>/dev/null; then
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$HOME/.zshrc"
+fi
+
 log "Updating Rust..."
 
 rustup update
