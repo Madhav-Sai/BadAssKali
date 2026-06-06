@@ -53,6 +53,7 @@ log "Creating virtual environment..."
 
 python3 -m venv "$VENV_DIR"
 
+# shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 
 pip install --upgrade pip

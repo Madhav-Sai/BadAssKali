@@ -28,6 +28,7 @@ echo
 
 if [[ -f "$HOME/.cargo/env" ]]; then
 
+# shellcheck disable=SC1091
     source "$HOME/.cargo/env"
 
     if command -v rustc >/dev/null 2>&1; then
@@ -49,6 +50,7 @@ curl --proto '=https' \
      -sSf \
      https://sh.rustup.rs | sh -s -- -y
 
+# shellcheck disable=SC1091
 source "$HOME/.cargo/env"
 
 export PATH="$HOME/.cargo/bin:$PATH"

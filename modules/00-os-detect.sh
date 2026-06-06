@@ -19,6 +19,7 @@ if [[ ! -f /etc/os-release ]]; then
     fail "Unable to determine operating system."
 fi
 
+# shellcheck disable=SC1091
 source /etc/os-release
 
 ARCH=$(uname -m)
