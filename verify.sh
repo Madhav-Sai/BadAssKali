@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
@@ -18,13 +18,13 @@ check() {
 
         echo -e "${GREEN}[OK]${NC} $tool"
 
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
 
     else
 
         echo -e "${RED}[FAIL]${NC} $tool"
 
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
 
     fi
 
@@ -36,6 +36,9 @@ echo " Kali Beast Verification"
 echo "=================================="
 echo
 
+echo "Core Tools"
+echo "----------"
+
 check git
 check curl
 check wget
@@ -43,6 +46,11 @@ check zsh
 check tmux
 check cargo
 check rustc
+
+echo
+echo "Terminal Tools"
+echo "--------------"
+
 check atuin
 check thefuck
 check yazi
@@ -75,7 +83,7 @@ echo -e "${RED}Failed:${NC} $FAILED"
 
 echo
 
-if [[ $FAILED -eq 0 ]]; then
+if [[ "$FAILED" -eq 0 ]]; then
 
     echo -e "${GREEN}System looks healthy.${NC}"
 
