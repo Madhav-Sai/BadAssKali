@@ -15,77 +15,76 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-THEFUCK_DIR="$HOME/.venvs/thefuck"
+echo
+echo "=================================="
+echo " TheFuck Installation"
+echo "=================================="
+echo
 
-if [[ -x "$THEFUCK_DIR/bin/thefuck" ]]; then
+if command -v thefuck >/dev/null 2>&1; then
 
     warn "TheFuck already installed."
 
-    "$THEFUCK_DIR/bin/thefuck" --version
+    thefuck --version || true
 
     exit 0
 
 fi
 
+log "Installing dependencies..."
+
+sudo apt update
+
+sudo apt install -y \
+    python3 \
+    python3-venv \
+    python3-pip
+
+VENV_DIR="$HOME/.venvs/thefuck"
+
+mkdir -p "$HOME/.venvs"
+
 log "Creating virtual environment..."
 
-python3 -m venv "$THEFUCK_DIR"
+python3 -m venv "$VENV_DIR"
 
-source "$THEFUCK_DIR/bin/activate"
-
-log "Updating pip..."
+source "$VENV_DIR/bin/activate"
 
 pip install --upgrade pip
 
-log "Installing compatible setuptools..."
-
+# pkg_resources compatibility
 pip install "setuptools<81"
-
-log "Cloning TheFuck..."
-
-rm -rf /tmp/thefuck || true
-
-git clone \
-https://github.com/nvbn/thefuck.git \
-/tmp/thefuck
-
-log "Applying Python 3.13 patch..."
-
-sed -i \
-'s/from distutils.spawn import find_executable/from shutil import which as find_executable/' \
-/tmp/thefuck/thefuck/system/unix.py
-
-cd /tmp/thefuck
 
 log "Installing TheFuck..."
 
-pip install --no-build-isolation .
+pip install thefuck
 
 deactivate
 
-if [[ ! -x "$THEFUCK_DIR/bin/thefuck" ]]; then
-    error "TheFuck installation failed."
+if [[ ! -f "$VENV_DIR/bin/thefuck" ]]; then
+
+    fail "TheFuck installation failed."
+
 fi
 
-if ! grep -q ".venvs/thefuck/bin" ~/.zshrc 2>/dev/null; then
+if ! grep -q ".venvs/thefuck/bin" "$HOME/.zshrc" 2>/dev/null; then
 
-cat >> ~/.zshrc << 'EOF'
+cat >> "$HOME/.zshrc" << 'EOF'
 
 # TheFuck
 export PATH="$HOME/.venvs/thefuck/bin:$PATH"
-
-if [ -x "$HOME/.venvs/thefuck/bin/thefuck" ]; then
-    eval "$($HOME/.venvs/thefuck/bin/thefuck --alias)"
-fi
+eval "$(thefuck --alias)"
 
 EOF
 
 fi
+
+export PATH="$HOME/.venvs/thefuck/bin:$PATH"
 
 echo
 echo "=================================="
@@ -93,4 +92,4 @@ echo " TheFuck Installed"
 echo "=================================="
 echo
 
-"$THEFUCK_DIR/bin/thefuck" --version
+thefuck --version

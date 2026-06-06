@@ -15,73 +15,89 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-    error "Oh My Zsh not installed. Run 03-ohmyzsh.sh first."
+echo
+echo "=================================="
+echo " Powerlevel10k Configuration"
+echo "=================================="
+echo
+
+cat > "$HOME/.zshrc" << 'EOF'
+# Enable Powerlevel10k instant prompt
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-CUSTOM_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+export ZSH="$HOME/.oh-my-zsh"
 
-mkdir -p "$CUSTOM_DIR/plugins"
-mkdir -p "$CUSTOM_DIR/themes"
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
-install_plugin() {
+plugins=(
+    git
+    sudo
+    docker
+    python
+    pip
+    fzf
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    zsh-completions
+    fzf-tab
+)
 
-    local repo="$1"
-    local target="$2"
+source $ZSH/oh-my-zsh.sh
 
-    if [[ -d "$target" ]]; then
-        warn "$(basename "$target") already installed. Skipping."
-        return
-    fi
+# Powerlevel10k
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-    git clone --depth=1 "$repo" "$target"
-}
+# Atuin
+command -v atuin >/dev/null && eval "$(atuin init zsh)"
 
-log "Installing Powerlevel10k..."
+# TheFuck
+command -v thefuck >/dev/null && eval "$(thefuck --alias)"
 
-install_plugin \
-"https://github.com/romkatv/powerlevel10k.git" \
-"$CUSTOM_DIR/themes/powerlevel10k"
+# Zoxide
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
-log "Installing zsh-autosuggestions..."
+# FZF
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-install_plugin \
-"https://github.com/zsh-users/zsh-autosuggestions" \
-"$CUSTOM_DIR/plugins/zsh-autosuggestions"
+# User aliases
+[ -f ~/.aliases ] && source ~/.aliases
 
-log "Installing zsh-syntax-highlighting..."
+# Better history
+HISTSIZE=100000
+SAVEHIST=100000
+HISTFILE=~/.zsh_history
 
-install_plugin \
-"https://github.com/zsh-users/zsh-syntax-highlighting" \
-"$CUSTOM_DIR/plugins/zsh-syntax-highlighting"
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
 
-log "Installing zsh-completions..."
+# Disable annoying autocorrect
+unsetopt correct
+unsetopt correctall
 
-install_plugin \
-"https://github.com/zsh-users/zsh-completions" \
-"$CUSTOM_DIR/plugins/zsh-completions"
+# Fastfetch
+if command -v fastfetch >/dev/null 2>&1; then
+    fastfetch
+fi
+EOF
 
-log "Installing fzf-tab..."
-
-install_plugin \
-"https://github.com/Aloxaf/fzf-tab" \
-"$CUSTOM_DIR/plugins/fzf-tab"
+log ".zshrc created."
 
 echo
 echo "=================================="
-echo " Powerlevel10k Stack Installed"
+echo " Powerlevel10k Configured"
 echo "=================================="
 echo
 
-echo "Installed:"
-echo "  ✓ Powerlevel10k"
-echo "  ✓ zsh-autosuggestions"
-echo "  ✓ zsh-syntax-highlighting"
-echo "  ✓ zsh-completions"
-echo "  ✓ fzf-tab"
+echo "Run:"
+echo
+echo "source ~/.zshrc"
+echo "p10k configure"
 echo

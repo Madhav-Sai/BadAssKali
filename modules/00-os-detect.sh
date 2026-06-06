@@ -4,57 +4,56 @@ set -euo pipefail
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
-BLUE="\033[0;34m"
 NC="\033[0m"
 
 log() {
     echo -e "${GREEN}[+]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-log "Detecting operating system..."
-
 if [[ ! -f /etc/os-release ]]; then
-    error "Cannot detect operating system."
+    fail "Unable to determine operating system."
 fi
 
 source /etc/os-release
 
-DISTRO="$ID"
-DISTRO_VERSION="$VERSION_ID"
+ARCH=$(uname -m)
 
-case "$DISTRO" in
+echo
+echo "=================================="
+echo " Operating System Detection"
+echo "=================================="
+echo
+
+log "Detected OS: $PRETTY_NAME"
+log "Detected Architecture: $ARCH"
+
+case "$ID" in
+
     kali|debian|ubuntu)
+        log "Supported distribution."
         ;;
+
     *)
-        error "Unsupported distribution: $DISTRO"
+        fail "Unsupported distribution: $ID"
         ;;
+
 esac
 
-log "Detecting architecture..."
+case "$ARCH" in
 
-ARCH_RAW=$(uname -m)
+    x86_64|aarch64|arm64)
+        log "Supported architecture."
+        ;;
 
-case "$ARCH_RAW" in
-    x86_64)
-        ARCH="amd64"
-        ;;
-    aarch64|arm64)
-        ARCH="arm64"
-        ;;
     *)
-        error "Unsupported architecture: $ARCH_RAW"
+        fail "Unsupported architecture: $ARCH"
         ;;
+
 esac
 
-export DISTRO
-export DISTRO_VERSION
-export ARCH
-
-log "Distro      : $DISTRO"
-log "Version     : $DISTRO_VERSION"
-log "Architecture: $ARCH"
+echo

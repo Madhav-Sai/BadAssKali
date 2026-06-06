@@ -15,10 +15,16 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
+
+echo
+echo "=================================="
+echo " Atuin Installation"
+echo "=================================="
+echo
 
 if command -v atuin >/dev/null 2>&1; then
 
@@ -34,31 +40,15 @@ log "Installing Atuin..."
 
 curl --proto '=https' \
      --tlsv1.2 \
-     -LsSf \
-     https://setup.atuin.sh | sh
+     -LsSf https://setup.atuin.sh | sh -s -- --yes
 
-if [[ ! -x "$HOME/.atuin/bin/atuin" ]]; then
-
-    error "Atuin installation failed."
-
-fi
-
-if ! grep -q "atuin init zsh" ~/.zshrc 2>/dev/null; then
-
-cat >> ~/.zshrc << 'EOF'
-
-# Atuin
 export PATH="$HOME/.atuin/bin:$PATH"
 
-eval "$(atuin init zsh)"
+if ! command -v atuin >/dev/null 2>&1; then
 
-EOF
+    fail "Atuin installation failed."
 
 fi
-
-log "Importing existing history..."
-
-"$HOME/.atuin/bin/atuin" import auto || true
 
 echo
 echo "=================================="
@@ -66,4 +56,11 @@ echo " Atuin Installed"
 echo "=================================="
 echo
 
-"$HOME/.atuin/bin/atuin" --version
+atuin --version
+
+echo
+echo "Optional:"
+echo
+echo "  atuin import auto"
+echo "  atuin register"
+echo

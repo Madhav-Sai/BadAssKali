@@ -15,28 +15,16 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-for cmd in git wget tar grep sudo; do
-    command -v "$cmd" >/dev/null 2>&1 || error "$cmd not installed"
-done
-
-ARCH=$(uname -m)
-
-case "$ARCH" in
-    x86_64)
-        ZIG_ARCH="x86_64"
-        ;;
-    aarch64|arm64)
-        ZIG_ARCH="aarch64"
-        ;;
-    *)
-        error "Unsupported architecture: $ARCH"
-        ;;
-esac
+echo
+echo "=================================="
+echo " Ghostty Installation"
+echo "=================================="
+echo
 
 if command -v ghostty >/dev/null 2>&1; then
 
@@ -44,75 +32,69 @@ if command -v ghostty >/dev/null 2>&1; then
 
     ghostty --version || true
 
-    read -rp "Rebuild Ghostty? [y/N] " REBUILD
+    exit 0
 
-    if [[ ! "$REBUILD" =~ ^[Yy]$ ]]; then
-        exit 0
-    fi
 fi
 
-log "Cloning Ghostty repository..."
+log "Installing Ghostty dependencies..."
 
-rm -rf /tmp/ghostty
+sudo apt update
 
-git clone --depth=1 https://github.com/ghostty-org/ghostty.git /tmp/ghostty
+sudo apt install -y \
+    build-essential \
+    pkg-config \
+    git \
+    wget \
+    libgtk-4-dev \
+    libadwaita-1-dev \
+    libgtk4-layer-shell-dev \
+    libglib2.0-dev \
+    libwayland-dev \
+    wayland-protocols
 
-cd /tmp/ghostty
+if ! command -v zig >/dev/null 2>&1; then
 
-ZIG_VERSION=$(grep minimum_zig_version build.zig.zon | cut -d'"' -f2)
+    warn "Zig not found."
 
-[[ -z "$ZIG_VERSION" ]] && error "Unable to determine required Zig version."
+    warn "Install Zig manually if Ghostty build fails."
 
-log "Ghostty requires Zig ${ZIG_VERSION}"
+fi
 
-cd /tmp
+TMP_DIR=$(mktemp -d)
 
-rm -rf zig-* || true
+cd "$TMP_DIR"
 
-log "Downloading Zig..."
+log "Cloning Ghostty..."
 
-wget \
-"https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz"
+git clone --depth=1 https://github.com/ghostty-org/ghostty.git
 
-log "Extracting Zig..."
-
-tar -xf "zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz"
-
-log "Installing Zig..."
-
-sudo rm -rf /opt/zig
-
-sudo mv \
-"zig-${ZIG_ARCH}-linux-${ZIG_VERSION}" \
-/opt/zig
-
-sudo ln -sf /opt/zig/zig /usr/local/bin/zig
-
-log "Zig version:"
-
-zig version
-
-cd /tmp/ghostty
+cd ghostty
 
 log "Building Ghostty..."
 
-zig build -Doptimize=ReleaseFast
+if zig build -Doptimize=ReleaseFast; then
 
-log "Installing Ghostty..."
+    log "Installing Ghostty..."
 
-sudo zig build install \
--Doptimize=ReleaseFast \
---prefix /usr/local
+    sudo zig build install \
+        -Doptimize=ReleaseFast \
+        --prefix /usr/local
 
-if ! command -v ghostty >/dev/null 2>&1; then
-    error "Ghostty installation failed."
+else
+
+    fail "Ghostty build failed."
+
 fi
 
-log "Creating desktop entry..."
+if ! command -v ghostty >/dev/null 2>&1; then
+
+    fail "Ghostty installation failed."
+
+fi
 
 mkdir -p ~/.local/share/applications
 
-cat > ~/.local/share/applications/ghostty.desktop << 'EOF'
+cat > ~/.local/share/applications/ghostty.desktop << EOF
 [Desktop Entry]
 Type=Application
 Name=Ghostty
@@ -122,6 +104,8 @@ Categories=System;TerminalEmulator;
 EOF
 
 update-desktop-database ~/.local/share/applications 2>/dev/null || true
+
+rm -rf "$TMP_DIR"
 
 echo
 echo "=================================="

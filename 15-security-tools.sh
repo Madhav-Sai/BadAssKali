@@ -18,45 +18,71 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-log "Installing security packages..."
+echo
+echo "=================================="
+echo " Security Tools Installation"
+echo "=================================="
+echo
+
+log "Updating package lists..."
 
 sudo apt update
 
-sudo apt install -y \
-    feroxbuster \
-    ffuf \
-    gobuster \
-    smbclient \
-    ldap-utils \
-    seclists \
-    bloodhound \
-    bloodhound-ce-python \
-    enum4linux-ng \
-    impacket-scripts \
+APT_TOOLS=(
     netexec
+    ffuf
+    feroxbuster
+    gobuster
+    smbclient
+    ldap-utils
+    enum4linux-ng
+    seclists
+    evil-winrm
+    responder
+    bloodhound
+    bloodhound-ce-python
+    impacket-scripts
+)
 
-log "Installing Certipy..."
+for tool in "${APT_TOOLS[@]}"
+do
 
-pipx install certipy-ad --force || true
+    log "Installing $tool..."
+
+    sudo apt install -y "$tool" || warn "$tool installation failed"
+
+done
+
+echo
+
+if command -v pipx >/dev/null 2>&1; then
+
+    log "Installing Certipy..."
+
+    pipx install certipy-ad --force || warn "Certipy installation failed"
+
+fi
+
+echo
 
 if command -v cargo >/dev/null 2>&1; then
+
+    mkdir -p "$HOME/cargo-build"
+
+    export TMPDIR="$HOME/cargo-build"
+    export CARGO_TARGET_DIR="$HOME/cargo-build/target"
+    export CARGO_BUILD_JOBS=1
 
     log "Installing RustScan..."
 
     cargo install \
         --locked \
-        rustscan || true
-
-    log "Installing Kerbrute..."
-
-    cargo install \
-        --locked \
-        kerbrute || true
+        rustscan || warn "RustScan installation failed"
 
 fi
 
@@ -69,14 +95,25 @@ echo
 TOOLS=(
     netexec
     certipy
-    feroxbuster
     ffuf
+    feroxbuster
     gobuster
+    rustscan
 )
 
 for tool in "${TOOLS[@]}"
 do
+
     if command -v "$tool" >/dev/null 2>&1; then
+
         echo "[OK] $tool"
+
+    else
+
+        echo "[MISSING] $tool"
+
     fi
+
 done
+
+echo

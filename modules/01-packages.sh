@@ -3,111 +3,83 @@
 set -euo pipefail
 
 GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+RED="\033[0;31m"
 NC="\033[0m"
 
 log() {
     echo -e "${GREEN}[+]${NC} $1"
 }
 
-log "Updating repositories..."
+warn() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+fail() {
+    echo -e "${RED}[-]${NC} $1"
+    exit 1
+}
+
+echo
+echo "=================================="
+echo " Installing Base Packages"
+echo "=================================="
+echo
 
 sudo apt update
 
-log "Installing core packages..."
+PACKAGES=(
+    git
+    curl
+    wget
+    unzip
+    zip
+    tar
+    gzip
+    bzip2
+    xz-utils
+    build-essential
+    pkg-config
+    software-properties-common
+    apt-transport-https
+    ca-certificates
+    gnupg
+    lsb-release
+    jq
+    yq
+    tree
+    htop
+    btop
+    fastfetch
+    fzf
+    ripgrep
+    fd-find
+    bat
+    eza
+    zoxide
+    ranger
+    neovim
+    tmux
+    python3
+    python3-pip
+    python3-venv
+    pipx
+    net-tools
+    dnsutils
+    nmap
+    smbclient
+    ldap-utils
+    seclists
+)
 
-sudo apt install -y \
-build-essential \
-pkg-config \
-software-properties-common \
-curl \
-wget \
-git \
-unzip \
-zip \
-tar \
-gzip \
-bzip2 \
-xz-utils \
-ca-certificates \
-gnupg \
-lsb-release
+log "Installing packages..."
 
-log "Installing terminal tools..."
+sudo apt install -y "${PACKAGES[@]}"
 
-sudo apt install -y \
-zsh \
-fzf \
-tmux \
-fastfetch \
-eza \
-bat \
-ripgrep \
-fd-find \
-jq \
-yq \
-tree \
-ncdu \
-btop \
-ranger \
-nnn \
-zoxide
+if ! command -v git >/dev/null 2>&1; then
+    fail "Package installation failed."
+fi
 
-log "Installing networking tools..."
+log "Base packages installed successfully."
 
-sudo apt install -y \
-net-tools \
-dnsutils \
-whois \
-traceroute \
-nmap \
-tcpdump \
-socat \
-rlwrap
-
-log "Installing Python tooling..."
-
-sudo apt install -y \
-python3 \
-python3-full \
-python3-pip \
-python3-venv \
-pipx
-
-log "Installing Ghostty dependencies..."
-
-sudo apt install -y \
-libgtk-4-dev \
-libadwaita-1-dev \
-blueprint-compiler \
-gettext \
-libxml2-utils \
-libfontconfig1-dev \
-libfreetype-dev
-
-log "Installing development tools..."
-
-sudo apt install -y \
-clang \
-cmake \
-ninja-build \
-make
-
-log "Installing clipboard support..."
-
-sudo apt install -y \
-wl-clipboard \
-xclip
-
-log "Installing quality-of-life tools..."
-
-sudo apt install -y \
-htop \
-screen \
-pv \
-rename
-
-log "Cleaning package cache..."
-
-sudo apt autoremove -y
-
-log "Package installation complete."
+echo

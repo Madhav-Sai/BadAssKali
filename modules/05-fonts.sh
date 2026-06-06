@@ -15,57 +15,57 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-FONT_NAME="JetBrainsMono"
-FONT_DIR="$HOME/.local/share/fonts/$FONT_NAME"
+echo
+echo "=================================="
+echo " Nerd Fonts Installation"
+echo "=================================="
+echo
 
-if [[ -d "$FONT_DIR" ]]; then
+FONT_DIR="$HOME/.local/share/fonts"
+
+if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
+
     warn "JetBrainsMono Nerd Font already installed."
-    fc-cache -fv >/dev/null 2>&1 || true
+
     exit 0
+
 fi
 
 mkdir -p "$FONT_DIR"
 
 TMP_DIR=$(mktemp -d)
 
-cleanup() {
-    rm -rf "$TMP_DIR"
-}
-
-trap cleanup EXIT
+cd "$TMP_DIR"
 
 log "Downloading JetBrainsMono Nerd Font..."
 
-wget -q \
--O "$TMP_DIR/JetBrainsMono.zip" \
+wget -O JetBrainsMono.zip \
 https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
 
-log "Extracting font..."
+log "Extracting fonts..."
 
-unzip -qq \
-"$TMP_DIR/JetBrainsMono.zip" \
--d "$FONT_DIR"
+unzip -o JetBrainsMono.zip -d JetBrainsMono
 
-log "Refreshing font cache..."
+log "Installing fonts..."
 
-fc-cache -fv >/dev/null
+cp JetBrainsMono/*.ttf "$FONT_DIR"
 
-if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
-    log "JetBrainsMono Nerd Font installed successfully."
-else
-    error "Font installation failed."
-fi
+fc-cache -fv >/dev/null 2>&1
+
+rm -rf "$TMP_DIR"
 
 echo
 echo "=================================="
 echo " Fonts Installed"
 echo "=================================="
 echo
-echo "Font:"
-echo "  ✓ JetBrainsMono Nerd Font"
+
+echo "Recommended Font:"
+echo
+echo "JetBrainsMono Nerd Font"
 echo

@@ -18,28 +18,20 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
+echo
+echo "=================================="
+echo " Cargo Tools Installation"
+echo "=================================="
+echo
+
 if ! command -v cargo >/dev/null 2>&1; then
-    error "Cargo not found. Run 06-rust.sh first."
+    fail "Cargo not found. Run 06-rust.sh first."
 fi
-
-echo
-echo "Rust Information"
-echo "================"
-
-which rustc
-rustc --version
-
-echo
-
-which cargo
-cargo --version
-
-echo
 
 mkdir -p "$HOME/cargo-build"
 
@@ -80,8 +72,13 @@ echo " Cargo Tools Installed"
 echo "=================================="
 echo
 
-for tool in "${TOOLS[@]}"
-do
-    command -v "$tool" >/dev/null 2>&1 && \
-        echo "[OK] $tool"
-done
+echo "Installed Tools:"
+echo
+
+command -v delta >/dev/null 2>&1 && echo "  ✓ delta"
+command -v btm >/dev/null 2>&1 && echo "  ✓ bottom"
+command -v dust >/dev/null 2>&1 && echo "  ✓ dust"
+command -v hyperfine >/dev/null 2>&1 && echo "  ✓ hyperfine"
+command -v procs >/dev/null 2>&1 && echo "  ✓ procs"
+
+echo

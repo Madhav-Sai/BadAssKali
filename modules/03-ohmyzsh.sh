@@ -15,48 +15,66 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-log "Checking Oh My Zsh installation..."
+echo
+echo "=================================="
+echo " Oh My Zsh Setup"
+echo "=================================="
+echo
 
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    warn "Oh My Zsh already installed."
-    exit 0
-fi
 
-if ! command -v zsh >/dev/null 2>&1; then
-    error "Zsh is not installed. Run 02-zsh.sh first."
+    warn "Oh My Zsh already installed."
+
+    exit 0
+
 fi
 
 log "Installing Oh My Zsh..."
 
-export RUNZSH=no
-export CHSH=no
-export KEEP_ZSHRC=yes
+RUNZSH=no \
+CHSH=no \
+KEEP_ZSHRC=yes \
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
-sh -c "$(
-curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-)"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
-log "Creating custom directories..."
+log "Installing Powerlevel10k..."
 
-mkdir -p \
-"${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins"
+git clone --depth=1 \
+https://github.com/romkatv/powerlevel10k.git \
+"$ZSH_CUSTOM/themes/powerlevel10k"
 
-mkdir -p \
-"${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes"
+log "Installing zsh-autosuggestions..."
 
-log "Verifying installation..."
+git clone --depth=1 \
+https://github.com/zsh-users/zsh-autosuggestions \
+"$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 
-[[ -d "$HOME/.oh-my-zsh" ]] || error "Installation failed."
+log "Installing zsh-syntax-highlighting..."
 
-log "Oh My Zsh installed successfully."
+git clone --depth=1 \
+https://github.com/zsh-users/zsh-syntax-highlighting \
+"$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+
+log "Installing zsh-completions..."
+
+git clone --depth=1 \
+https://github.com/zsh-users/zsh-completions \
+"$ZSH_CUSTOM/plugins/zsh-completions"
+
+log "Installing fzf-tab..."
+
+git clone --depth=1 \
+https://github.com/Aloxaf/fzf-tab \
+"$ZSH_CUSTOM/plugins/fzf-tab"
 
 echo
 echo "=================================="
-echo " Oh My Zsh Ready"
+echo " Oh My Zsh Installed"
 echo "=================================="
 echo

@@ -18,10 +18,16 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
+
+echo
+echo "=================================="
+echo " Yazi Installation"
+echo "=================================="
+echo
 
 if command -v yazi >/dev/null 2>&1; then
 
@@ -34,7 +40,7 @@ if command -v yazi >/dev/null 2>&1; then
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
-    error "Cargo not found. Run 06-rust.sh first."
+    fail "Cargo not found. Run 06-rust.sh first."
 fi
 
 echo

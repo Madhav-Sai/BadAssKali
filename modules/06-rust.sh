@@ -15,82 +15,73 @@ warn() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-error() {
+fail() {
     echo -e "${RED}[-]${NC} $1"
     exit 1
 }
 
-ARCH=$(uname -m)
+echo
+echo "=================================="
+echo " Rust Installation"
+echo "=================================="
+echo
 
-case "$ARCH" in
-    x86_64|aarch64|arm64)
-        ;;
-    *)
-        error "Unsupported architecture: $ARCH"
-        ;;
-esac
-
-if command -v rustup >/dev/null 2>&1; then
-
-    log "Rustup already installed."
+if [[ -f "$HOME/.cargo/env" ]]; then
 
     source "$HOME/.cargo/env"
 
-    log "Updating Rust toolchain..."
+    if command -v rustc >/dev/null 2>&1; then
 
-    rustup update
+        warn "Rust already installed."
 
-    rustup default stable
+        rustc --version
 
-else
+        exit 0
 
-    log "Installing Rustup..."
-
-    curl --proto '=https' \
-         --tlsv1.2 \
-         -sSf \
-         https://sh.rustup.rs | sh -s -- -y
-
-    source "$HOME/.cargo/env"
-
-    rustup default stable
+    fi
 
 fi
 
-log "Installing useful components..."
+log "Installing Rust..."
 
-rustup component add rustfmt || true
-rustup component add clippy || true
+curl --proto '=https' \
+     --tlsv1.2 \
+     -sSf \
+     https://sh.rustup.rs | sh -s -- -y
 
-log "Verifying installation..."
+source "$HOME/.cargo/env"
 
-cargo --version
+export PATH="$HOME/.cargo/bin:$PATH"
+
+log "Updating Rust..."
+
+rustup update
+
+rustup default stable
+
+echo
+echo "Rust Information"
+echo "================"
+echo
+
+which rustc
 rustc --version
 
-log "Creating Cargo environment file..."
+echo
 
-mkdir -p ~/.config/kali-beast
+which cargo
+cargo --version
 
-cat > ~/.config/kali-beast/rust.env << 'EOF'
-export PATH="$HOME/.cargo/bin:$PATH"
-EOF
+echo
 
-if ! grep -q ".cargo/bin" ~/.zshrc 2>/dev/null; then
+log "Installing useful Rust components..."
 
-cat >> ~/.zshrc << 'EOF'
-
-# Rust
-export PATH="$HOME/.cargo/bin:$PATH"
-
-EOF
-
-fi
+rustup component add \
+    rustfmt \
+    clippy
 
 echo
 echo "=================================="
 echo " Rust Installed"
 echo "=================================="
 echo
-
-cargo --version
-rustc --version
