@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -22,75 +22,139 @@ fail() {
 
 echo
 echo "=================================="
-echo " TheFuck Installation"
+echo "     TheFuck Installer"
 echo "=================================="
 echo
 
-if command -v thefuck >/dev/null 2>&1; then
-
-    warn "TheFuck already installed."
-
-    thefuck --version || true
-
-    exit 0
-
+# Detect package manager
+if command -v apt >/dev/null 2>&1; then
+    PKG_INSTALL="sudo apt update && sudo apt install -y"
+elif command -v dnf >/dev/null 2>&1; then
+    PKG_INSTALL="sudo dnf install -y"
+elif command -v pacman >/dev/null 2>&1; then
+    PKG_INSTALL="sudo pacman -Sy --noconfirm"
+elif command -v brew >/dev/null 2>&1; then
+    PKG_INSTALL="brew install"
+else
+    fail "Unsupported package manager."
 fi
 
+# Install dependencies
 log "Installing dependencies..."
 
-sudo apt update
+if command -v apt >/dev/null 2>&1; then
+    sudo apt update
+    sudo apt install -y \
+        git \
+        python3 \
+        python3-venv \
+        python3-pip
+elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y \
+        git \
+        python3 \
+        python3-pip
+elif command -v pacman >/dev/null 2>&1; then
+    sudo pacman -Sy --noconfirm \
+        git \
+        python \
+        python-pip
+elif command -v brew >/dev/null 2>&1; then
+    brew install git python
+fi
 
-sudo apt install -y \
-    python3 \
-    python3-venv \
-    python3-pip
+PYTHON=$(command -v python3 || command -v python)
+
+[[ -n "$PYTHON" ]] || fail "Python not found."
+
+PY_VER=$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+log "Python version: $PY_VER"
 
 VENV_DIR="$HOME/.venvs/thefuck"
 
-mkdir -p "$HOME/.venvs"
+if [[ -d "$VENV_DIR" ]]; then
+    warn "Removing existing virtual environment..."
+    rm -rf "$VENV_DIR"
+fi
+
+mkdir -p "$(dirname "$VENV_DIR")"
 
 log "Creating virtual environment..."
 
-python3 -m venv "$VENV_DIR"
+"$PYTHON" -m venv "$VENV_DIR"
 
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 
-pip install --upgrade pip
+log "Upgrading pip..."
 
-# pkg_resources compatibility
-pip install "setuptools<81"
+python -m pip install --upgrade pip setuptools wheel
 
-log "Installing TheFuck..."
+# Ubuntu/Kali Python 3.12 compatibility
+if [[ "$PY_VER" =~ ^3\.12|^3\.13 ]]; then
+    warn "Python >=3.12 detected."
 
-pip install thefuck
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt install -y python3-zombie-imp || true
+    fi
+fi
+
+log "Installing latest TheFuck from GitHub..."
+
+pip install --no-cache-dir \
+    git+https://github.com/nvbn/thefuck.git
 
 deactivate
 
-if [[ ! -f "$VENV_DIR/bin/thefuck" ]]; then
+THEFUCK_BIN="$VENV_DIR/bin/thefuck"
 
-    fail "TheFuck installation failed."
+[[ -x "$THEFUCK_BIN" ]] || fail "Installation failed."
 
-fi
+# Determine shell rc file
+case "${SHELL##*/}" in
+    zsh)
+        RC="$HOME/.zshrc"
+        ;;
+    bash)
+        RC="$HOME/.bashrc"
+        ;;
+    *)
+        RC="$HOME/.profile"
+        ;;
+esac
 
-if ! grep -q ".venvs/thefuck/bin" "$HOME/.zshrc" 2>/dev/null; then
+if ! grep -q "THEFUCK_VENV" "$RC" 2>/dev/null; then
 
-cat >> "$HOME/.zshrc" << 'EOF'
+cat >> "$RC" <<EOF
 
-# TheFuck
-export PATH="$HOME/.venvs/thefuck/bin:$PATH"
-eval "$(thefuck --alias)"
-
+# THEFUCK_VENV
+export PATH="$VENV_DIR/bin:\$PATH"
+eval "\$(thefuck --alias)"
 EOF
 
 fi
 
-export PATH="$HOME/.venvs/thefuck/bin:$PATH"
+export PATH="$VENV_DIR/bin:$PATH"
 
 echo
 echo "=================================="
-echo " TheFuck Installed"
+echo " Installation Complete"
 echo "=================================="
 echo
 
-thefuck --version
+echo "Version:"
+thefuck --version || true
+
+echo
+echo "Reload your shell:"
+echo
+echo "    source \"$RC\""
+echo
+echo "or simply open a new terminal."
+echo
+echo "Usage:"
+echo
+echo "    sl"
+echo "    fuck"
+echo
