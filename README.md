@@ -1,311 +1,169 @@
-# Kali Beast Bootstrap
+<div align="center">
 
-A production-focused terminal and pentesting workstation bootstrap for:
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=220&section=header&text=BadAssKali&fontSize=64&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Terminal%20bootstrap%20for%20Kali%2C%20Debian%20%26%20Ubuntu&descAlignY=60&descSize=18" alt="BadAssKali" width="100%" />
 
-* Kali Linux Rolling
-* Debian 13+
-* Ubuntu 24.04+
+[![Platform](https://img.shields.io/badge/platform-Kali%20%7C%20Debian%20%7C%20Ubuntu-8b5cf6?style=for-the-badge&logo=linux&logoColor=white)](#compatibility)
+[![Shell](https://img.shields.io/badge/shell-Zsh-4e9a06?style=for-the-badge&logo=zsh&logoColor=white)](#whats-inside)
 
-Supports:
+<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&pause=900&color=A78BFA&center=true&vCenter=true&width=620&lines=Build+a+cleaner+security+workstation.;Fast+terminal.+Better+defaults.+Less+setup.;Clone.+Run.+Ship." alt="Animated terminal intro" />
 
-* AMD64 (x86_64)
-* ARM64 (aarch64)
+</div>
 
----
+## ⚡ Why BadAssKali?
 
-## Features
+BadAssKali turns a fresh supported Linux installation into a polished terminal workspace for development, system administration, and authorized security testing. It handles the boring setup so you can get straight to work.
 
-### Terminal Stack
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🖥️ A terminal that feels great</h3>
+      Ghostty, Zsh, Powerlevel10k, JetBrains Mono Nerd Font, Atuin, tmux, and a Catppuccin-inspired visual setup.
+    </td>
+    <td width="50%">
+      <h3>🚀 Tools that stay out of your way</h3>
+      Yazi previews, zoxide jumping, fzf search, eza icons, bat output, direnv, HTTPie, tldr, and more.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🧱 Reliable installations</h3>
+      Ghostty builds with its required Zig release, Yazi uses official packages, and TheFuck runs outside your system Python.
+    </td>
+    <td width="50%">
+      <h3>🛡️ Ready for authorized work</h3>
+      Includes common discovery, web, directory-service, and password-audit utilities. Only use tools where you have explicit permission.
+    </td>
+  </tr>
+</table>
 
-* Ghostty
-* Zsh
-* Oh My Zsh
-* Powerlevel10k
-* JetBrainsMono Nerd Font
-* zsh-autosuggestions
-* zsh-syntax-highlighting
-* zsh-completions
-* fzf-tab
+## ✨ What's Inside
 
-### Productivity
+| Area | Included |
+| --- | --- |
+| **Terminal** | Ghostty, Zsh, Oh My Zsh, Powerlevel10k, JetBrainsMono Nerd Font |
+| **Shell power** | Atuin, TheFuck, zoxide, fzf, fzf-tab, autosuggestions, syntax highlighting |
+| **File & system** | Yazi with media/document/archive previews, eza, bat, fastfetch, btop, ncdu, tmux |
+| **Developer flow** | Rust, Cargo, git-delta, bottom, dust, hyperfine, procs, direnv, HTTPie, ShellCheck, shfmt |
+| **Authorized security** | Nmap, NetExec, Impacket, FFUF, Feroxbuster, Gobuster, RustScan, Certipy, BloodHound helpers |
 
-* Atuin
-* TheFuck
-* zoxide
-* fzf
-* eza
-* bat
-* fastfetch
-* tmux
-* ranger
-* nnn
-* yazi
-* direnv
-* tealdeer
-* httpie
-* ncdu
+## 🧩 Compatibility
 
-### Rust Ecosystem
+| Distribution | CPU architectures |
+| --- | --- |
+| Kali Linux Rolling | `x86_64`, `aarch64` |
+| Debian 13+ | `x86_64`, `aarch64` |
+| Ubuntu 24.04+ | `x86_64`, `aarch64` |
 
-* rustup
-* cargo
-* rustfmt
-* clippy
+> [!IMPORTANT]
+> Run the installer as your normal user—not as `root`. It will request `sudo` only for system packages and Ghostty installation.
 
-Optional cargo tools:
-
-* git-delta
-* bottom
-* dust
-* hyperfine
-* procs
-
-The installer downloads the current Yazi Debian package for your architecture,
-builds the latest stable Ghostty tag with the exact Zig version it requires, and
-installs TheFuck in a `uv`-managed Python 3.11 environment. This avoids breakage
-from newer system Python versions.
-
-### Security Tooling
-
-* NetExec
-* BloodHound
-* Certipy
-* RustScan
-* Kerbrute
-* Feroxbuster
-* Gobuster
-* FFUF
-* Impacket
-* Nmap helpers
-* AD helpers
-
-### Quality of Life
-
-* Large shell history
-* Smart completion
-* Better defaults
-* Pentest aliases
-* Reverse shell generators
-* HTB workflow helpers
-
----
-
-## Repository Layout
-
-```text
-kali-beast/
-├── install.sh
-├── uninstall.sh
-├── verify.sh
-├── modules/
-│   ├── 00-os-detect.sh
-│   ├── 01-packages.sh
-│   ├── 02-zsh.sh
-│   ├── 03-ohmyzsh.sh
-│   ├── 04-p10k.sh
-│   ├── 05-fonts.sh
-│   ├── 06-rust.sh
-│   ├── 07-ghostty.sh
-│   ├── 08-atuin.sh
-│   ├── 09-thefuck.sh
-│   ├── 10-yazi.sh
-│   ├── 11-tmux.sh
-│   ├── 12-pentest.sh
-│   ├── 13-configs.sh
-│   ├── 14-cargo-tools.sh
-│   └── 15-security-tools.sh
-├── configs/
-│   ├── .zshrc
-│   ├── .tmux.conf
-│   ├── aliases.zsh
-│   └── ghostty/
-│       └── config
-└── docs/
-```
-
----
-
-## Installation
-
-Clone the repository:
+## 🚀 Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/kali-beast.git
-
-cd kali-beast
-```
-
-Make installer executable:
-
-```bash
+git clone https://github.com/Madhav-Sai/BadAssKali.git
+cd BadAssKali
 chmod +x install.sh
-```
-
-Run:
-
-```bash
 ./install.sh
 ```
 
----
+<details>
+<summary><b>What the installer does</b></summary>
+<br />
 
-## Post Installation
+1. Checks your distribution and architecture.
+2. Installs base packages and a polished Zsh environment.
+3. Builds the latest stable Ghostty release with the matching Zig version.
+4. Installs Atuin, TheFuck, Yazi, tmux, Rust utilities, and optional authorized-security tooling.
+5. Writes Ghostty, Yazi, tmux, aliases, and shell configuration files.
 
-Reload shell:
+</details>
+
+## 🏁 After Installation
+
+```bash
+source ~/.zshrc
+p10k configure
+atuin import auto
+./verify.sh
+```
+
+Choose **Lean**, **Unicode**, and **Two Line** in the Powerlevel10k wizard for the intended look.
+
+## 🎮 Quick Commands
+
+| Command | What it does |
+| --- | --- |
+| `y` | Open Yazi and move the current shell to its selected directory |
+| `z <name>` | Jump to a frequently used directory with zoxide |
+| `Ctrl + R` | Search shell history with Atuin |
+| `fuck` | Correct the previous command with TheFuck |
+| `ll` / `lt` | Icon-rich directory listing / tree |
+| `web` | Start a Python web server on port 8000 |
+| `serve` | Serve the current directory using HTTPie |
+| `weather` | Fetch a compact terminal weather report |
+| `tnew <name>` | Create a named tmux session |
+| `htb` / `notes` | Jump to your workspace directories |
+
+## 🛠️ Troubleshooting
+
+<details>
+<summary><b>Ghostty fails to build</b></summary>
+<br />
+
+Make sure you have an internet connection and re-run only the module:
+
+```bash
+bash modules/07-ghostty.sh
+```
+
+The installer selects the latest stable Ghostty tag and reads its required Zig version automatically.
+
+</details>
+
+<details>
+<summary><b>Yazi is missing previews</b></summary>
+<br />
+
+Restart your terminal after installation. The installer adds helpers for images, PDFs, archives, media, and text previews. On Wayland, ensure your terminal supports image rendering for inline image previews.
+
+</details>
+
+<details>
+<summary><b>TheFuck is not found after installation</b></summary>
+<br />
+
+Reload your shell so `~/.local/bin` is on your `PATH`:
 
 ```bash
 source ~/.zshrc
 ```
 
-Configure Powerlevel10k:
+TheFuck uses an isolated Python 3.11 managed by `uv`, avoiding conflicts with newer system Python releases.
 
-```bash
-p10k configure
-```
+</details>
 
-Import history into Atuin:
-
-```bash
-atuin import auto
-```
-
-Verify installation:
+## 🔍 Verify
 
 ```bash
 ./verify.sh
 ```
 
-Yazi includes image, document, archive, and media-preview helpers. Run `y` from
-Zsh (rather than `yazi`) to enter the directory selected in the file manager.
+The verifier checks core terminal, productivity, and authorized-security commands and reports anything missing.
 
----
-
-## Recommended Powerlevel10k Setup
-
-Prompt Style:
-
-```text
-Lean
-```
-
-Character Set:
-
-```text
-Unicode
-```
-
-Prompt Layout:
-
-```text
-Two Line
-```
-
-Transient Prompt:
-
-```text
-Yes
-```
-
----
-
-## Verification
-
-Check installed tools:
+## 🧹 Uninstall
 
 ```bash
-./verify.sh
+./uninstall.sh
 ```
 
-Expected output:
+> [!CAUTION]
+> The uninstaller removes generated Zsh, Ghostty, tmux, Atuin, Rust, and related configuration directories. Review `uninstall.sh` before running it if you have customized your setup.
 
-```text
-[OK] zsh
-[OK] cargo
-[OK] ghostty
-[OK] atuin
-[OK] thefuck
-[OK] tmux
-[OK] yazi
-...
-```
+## 🤝 Contributing
 
----
+Issues and focused pull requests are welcome. Keep additions modular, idempotent, and compatible with Kali, Debian, and Ubuntu.
 
-## Common Aliases
-
-HTB:
-
-```bash
-htb
-```
-
-Listener:
-
-```bash
-listen 4444
-```
-
-Web Server:
-
-```bash
-web
-```
-
-IPs:
-
-```bash
-ips
-```
-
-Ports:
-
-```bash
-ports
-```
-
-Reverse Shell:
-
-```bash
-revbash 10.10.14.5 4444
-```
-
----
-
-## Supported Architectures
-
-| Architecture | Supported |
-| ------------ | --------- |
-| AMD64        | Yes       |
-| ARM64        | Yes       |
-
----
-
-## Supported Distributions
-
-| Distribution  | Supported |
-| ------------- | --------- |
-| Kali Rolling  | Yes       |
-| Debian 13+    | Yes       |
-| Ubuntu 24.04+ | Yes       |
-
----
-
-## Disclaimer
-
-This project modifies:
-
-* Shell configuration
-* Terminal configuration
-* User PATH
-* Rust environment
-* Font installation
-
-Always review scripts before running them.
-
-Use at your own risk.
-
----
-
-## License
-
-MIT License
+<div align="center">
+  <br />
+  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:0f0c29,50:302b63,100:24243e&height=70&section=footer&text=Build%20smart.%20Stay%20authorized.&fontSize=20&fontColor=ffffff" alt="Build smart. Stay authorized." width="100%" />
+</div>
