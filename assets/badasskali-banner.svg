@@ -1,0 +1,41 @@
+<svg width="1200" height="280" viewBox="0 0 1200 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1200" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F0C29"/>
+      <stop offset="0.5" stop-color="#302B63"/>
+      <stop offset="1" stop-color="#24243E"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="264" y1="86" x2="936" y2="195" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="0.5" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#F0ABFC"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="280" rx="18" fill="url(#background)"/>
+  <g opacity="0.24" stroke="#C4B5FD">
+    <path d="M0 36H1200M0 92H1200M0 148H1200M0 204H1200M0 260H1200"/>
+    <path d="M80 0V280M200 0V280M320 0V280M440 0V280M560 0V280M680 0V280M800 0V280M920 0V280M1040 0V280M1160 0V280"/>
+  </g>
+  <circle cx="197" cy="139" r="72" stroke="#67E8F9" stroke-width="2" opacity="0.7">
+    <animate attributeName="r" values="62;76;62" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <path d="M197 78L214 121L260 128L225 158L234 204L197 181L160 204L169 158L134 128L180 121L197 78Z" fill="url(#accent)" filter="url(#glow)">
+    <animateTransform attributeName="transform" type="rotate" values="0 197 141;8 197 141;0 197 141" dur="3s" repeatCount="indefinite"/>
+  </path>
+  <text x="300" y="132" fill="white" font-family="JetBrains Mono, monospace" font-size="52" font-weight="700" letter-spacing="-2">BadAssKali</text>
+  <text x="304" y="174" fill="#C4B5FD" font-family="JetBrains Mono, monospace" font-size="19" letter-spacing="1">TERMINAL BOOTSTRAP FOR KALI, DEBIAN &amp; UBUNTU</text>
+  <rect x="304" y="198" width="82" height="6" rx="3" fill="#67E8F9">
+    <animate attributeName="width" values="42;262;42" dur="3.2s" repeatCount="indefinite"/>
+  </rect>
+  <circle cx="1030" cy="70" r="4" fill="#67E8F9"><animate attributeName="opacity" values="0.2;1;0.2" dur="1.4s" repeatCount="indefinite"/></circle>
+  <circle cx="1080" cy="112" r="3" fill="#F0ABFC"><animate attributeName="opacity" values="1;0.2;1" dur="1.8s" repeatCount="indefinite"/></circle>
+  <circle cx="1000" cy="188" r="5" fill="#A78BFA"><animate attributeName="opacity" values="0.2;1;0.2" dur="2.1s" repeatCount="indefinite"/></circle>
+</svg>

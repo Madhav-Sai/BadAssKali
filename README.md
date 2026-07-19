@@ -1,11 +1,9 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=220&section=header&text=BadAssKali&fontSize=64&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Terminal%20bootstrap%20for%20Kali%2C%20Debian%20%26%20Ubuntu&descAlignY=60&descSize=18" alt="BadAssKali" width="100%" />
+<img src="assets/badasskali-banner.svg" alt="BadAssKali — terminal bootstrap for Kali, Debian, and Ubuntu" width="100%" />
 
 [![Platform](https://img.shields.io/badge/platform-Kali%20%7C%20Debian%20%7C%20Ubuntu-8b5cf6?style=for-the-badge&logo=linux&logoColor=white)](#compatibility)
 [![Shell](https://img.shields.io/badge/shell-Zsh-4e9a06?style=for-the-badge&logo=zsh&logoColor=white)](#whats-inside)
-
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&pause=900&color=A78BFA&center=true&vCenter=true&width=620&lines=Build+a+cleaner+security+workstation.;Fast+terminal.+Better+defaults.+Less+setup.;Clone.+Run.+Ship." alt="Animated terminal intro" />
 
 </div>
 
@@ -165,5 +163,5 @@ Issues and focused pull requests are welcome. Keep additions modular, idempotent
 
 <div align="center">
   <br />
-  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:0f0c29,50:302b63,100:24243e&height=70&section=footer&text=Build%20smart.%20Stay%20authorized.&fontSize=20&fontColor=ffffff" alt="Build smart. Stay authorized." width="100%" />
+  <sub>Build smart. Stay authorized.</sub>
 </div>
