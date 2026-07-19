@@ -40,6 +40,10 @@ Supports:
 * ranger
 * nnn
 * yazi
+* direnv
+* tealdeer
+* httpie
+* ncdu
 
 ### Rust Ecosystem
 
@@ -55,6 +59,11 @@ Optional cargo tools:
 * dust
 * hyperfine
 * procs
+
+The installer downloads the current Yazi Debian package for your architecture,
+builds the latest stable Ghostty tag with the exact Zig version it requires, and
+installs TheFuck in a `uv`-managed Python 3.11 environment. This avoids breakage
+from newer system Python versions.
 
 ### Security Tooling
 
@@ -165,6 +174,9 @@ Verify installation:
 ```bash
 ./verify.sh
 ```
+
+Yazi includes image, document, archive, and media-preview helpers. Run `y` from
+Zsh (rather than `yazi`) to enter the directory selected in the file manager.
 
 ---
 

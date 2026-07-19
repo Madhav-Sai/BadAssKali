@@ -34,19 +34,38 @@ mkdir -p ~/screenshots
 
 cat > ~/.config/ghostty/config << 'EOF'
 font-family = JetBrainsMono Nerd Font
-font-size = 12
+font-size = 13
 
-theme = Dracula
+theme = Catppuccin Mocha
 
-cursor-style = block
+cursor-style = bar
+cursor-style-blink = true
 
-window-padding-x = 8
-window-padding-y = 8
+window-padding-x = 14
+window-padding-y = 12
 
 copy-on-select = true
+clipboard-read = allow
+clipboard-write = allow
 
 confirm-close-surface = false
 shell-integration = zsh
+
+window-decoration = true
+window-save-state = always
+EOF
+
+cat > ~/.config/yazi/yazi.toml << 'EOF'
+[mgr]
+show_hidden = true
+sort_by = "alphabetical"
+sort_sensitive = false
+linemode = "size"
+show_symlink = true
+
+[preview]
+wrap = "yes"
+tab_size = 2
 EOF
 
 #################################
@@ -57,6 +76,13 @@ cat > ~/.tmux.conf << 'EOF'
 set -g mouse on
 
 set -g history-limit 100000
+set -g renumber-windows on
+set -g status-position top
+set -g status-style 'bg=#1e1e2e,fg=#cdd6f4'
+set -g status-left '#[fg=#89b4fa,bold] #S '
+set -g status-right '#[fg=#a6e3a1]%Y-%m-%d #[fg=#f9e2af]%H:%M '
+set -g pane-border-style 'fg=#45475a'
+set -g pane-active-border-style 'fg=#89b4fa'
 
 set -g default-terminal "screen-256color"
 
@@ -69,20 +95,10 @@ bind r source-file ~/.tmux.conf
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @plugin 'tmux-plugins/tmux-continuum'
+set -g @continuum-restore 'on'
 
 run '~/.tmux/plugins/tpm/tpm'
-EOF
-
-#################################
-# Yazi
-#################################
-
-cat > ~/.config/yazi/yazi.toml << 'EOF'
-[manager]
-show_hidden = true
-sort_by = "alphabetical"
-sort_sensitive = false
-linemode = "size"
 EOF
 
 echo

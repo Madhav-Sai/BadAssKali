@@ -51,6 +51,7 @@ plugins=(
     zsh-syntax-highlighting
     zsh-completions
     fzf-tab
+    direnv
 )
 
 source $ZSH/oh-my-zsh.sh
@@ -66,6 +67,21 @@ command -v thefuck >/dev/null && eval "$(thefuck --alias)"
 
 # Zoxide
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
+
+# direnv
+command -v direnv >/dev/null && eval "$(direnv hook zsh)"
+
+# Yazi: change the current shell to the directory selected in Yazi.
+function y() {
+    local tmp_file="$(mktemp -t yazi-cwd.XXXXXX)"
+    yazi "$@" --cwd-file="$tmp_file"
+    if [[ -f "$tmp_file" ]]; then
+        local cwd
+        cwd="$(cat -- "$tmp_file")"
+        [[ -n "$cwd" && "$cwd" != "$PWD" ]] && builtin cd -- "$cwd"
+        rm -f -- "$tmp_file"
+    fi
+}
 
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

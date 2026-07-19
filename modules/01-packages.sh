@@ -64,6 +64,14 @@ PACKAGES=(
     python3-pip
     python3-venv
     pipx
+    direnv
+    entr
+    httpie
+    ncdu
+    shellcheck
+    shfmt
+    tealdeer
+    w3m
     net-tools
     dnsutils
     nmap

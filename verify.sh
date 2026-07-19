@@ -60,6 +60,10 @@ check fzf
 check zoxide
 check eza
 check batcat
+check direnv
+check tldr
+check http
+check ncdu
 
 echo
 echo "Security Tools"
