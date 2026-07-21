@@ -118,31 +118,89 @@ for required_command in curl git jq tar awk sort; do
 done
 
 work_dir="$(mktemp -d -t badasskali-ghostty.XXXXXX)"
-repo_dir="$work_dir/ghostty"
 
-log "Finding the latest stable Ghostty release..."
-release_tag="$(
-    curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/releases/latest \
-        | jq -r '.tag_name // empty'
-)"
+log "Finding a downloadable stable Ghostty release..."
 
-if [[ -z "$release_tag" || ! "$release_tag" =~ ^v[0-9] ]]; then
-    warn "GitHub Releases API did not return a stable tag; falling back to Git tags."
-    release_tag="$(
-        git ls-remote --tags --refs https://github.com/ghostty-org/ghostty.git \
-            | awk -F/ '{print $3}' \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sort -V \
-            | tail -n1
-    )"
+candidate_versions=()
+
+# Primary discovery source: Ghostty's official release-notes page.
+# This avoids depending on the GitHub Releases API, which may return 404.
+if release_notes_html="$(curl -fsSL --retry 4 --retry-all-errors \
+    --connect-timeout 20 https://ghostty.org/docs/install/release-notes 2>/dev/null)"; then
+
+    while IFS= read -r detected_version; do
+        [[ -n "$detected_version" ]] && candidate_versions+=("$detected_version")
+    done < <(
+        printf '%s' "$release_notes_html" \
+            | grep -oE '/docs/install/release-notes/[0-9]+-[0-9]+-[0-9]+' \
+            | sed -E 's#.*/([0-9]+)-([0-9]+)-([0-9]+)#\1.\2.\3#' \
+            | sort -Vru
+    )
+else
+    warn "Unable to read Ghostty's official release-notes page."
 fi
 
-[[ -n "$release_tag" ]] || fail "Unable to determine the latest stable Ghostty release."
-log "Selected Ghostty release: $release_tag"
+# Secondary discovery source: stable tags from the read-only Git mirror.
+if [[ ${#candidate_versions[@]} -eq 0 ]]; then
+    warn "Falling back to Ghostty Git tags."
 
-log "Cloning Ghostty $release_tag..."
-git clone --depth=1 --branch "$release_tag" \
-    https://github.com/ghostty-org/ghostty.git "$repo_dir"
+    while IFS= read -r detected_version; do
+        [[ -n "$detected_version" ]] && candidate_versions+=("$detected_version")
+    done < <(
+        git ls-remote --tags --refs https://github.com/ghostty-org/ghostty.git 2>/dev/null \
+            | awk -F/ '{print $3}' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed 's/^v//' \
+            | sort -Vru
+    )
+fi
+
+# Known stable fallback releases.
+candidate_versions+=("1.3.1" "1.3.0" "1.2.3")
+
+mapfile -t candidate_versions < <(
+    printf '%s\n' "${candidate_versions[@]}" \
+        | awk 'NF && !seen[$0]++' \
+        | sort -Vr
+)
+
+version=""
+source_archive=""
+
+for candidate in "${candidate_versions[@]}"; do
+    candidate_url="https://release.files.ghostty.org/${candidate}/ghostty-${candidate}.tar.gz"
+    candidate_archive="$work_dir/ghostty-${candidate}.tar.gz"
+
+    info "Trying Ghostty ${candidate}: $candidate_url"
+
+    if curl -fL --retry 4 --retry-all-errors --connect-timeout 20 \
+        "$candidate_url" -o "$candidate_archive"; then
+
+        # Reject HTML directory indexes and error pages even when they return HTTP 200.
+        if tar -tzf "$candidate_archive" >/dev/null 2>&1; then
+            version="$candidate"
+            source_archive="$candidate_archive"
+            break
+        fi
+
+        warn "Ghostty ${candidate} download was not a valid source archive."
+        rm -f "$candidate_archive"
+    else
+        warn "Ghostty ${candidate} was unavailable."
+        rm -f "$candidate_archive"
+    fi
+done
+
+[[ -n "$version" && -s "$source_archive" ]] \
+    || fail "Unable to download a valid Ghostty source tarball."
+
+log "Selected Ghostty release: v${version}"
+
+log "Extracting Ghostty source..."
+tar -xzf "$source_archive" -C "$work_dir"
+
+repo_dir="$work_dir/ghostty-${version}"
+[[ -d "$repo_dir" ]] || fail "Expected source directory not found: $repo_dir"
 
 zig_version="$(awk -F'"' '/minimum_zig_version/ {print $2; exit}' "$repo_dir/build.zig.zon")"
 [[ -n "$zig_version" ]] || fail "Unable to determine Ghostty's required Zig version."
@@ -172,7 +230,7 @@ else
     info "Reusing Zig $zig_version from $zig_dir"
 fi
 
-log "Building Ghostty $release_tag with Zig $zig_version..."
+log "Building Ghostty v${version} with Zig $zig_version..."
 cd "$repo_dir"
 "$zig_bin" build -Doptimize=ReleaseFast
 
