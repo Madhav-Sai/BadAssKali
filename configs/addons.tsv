@@ -1,0 +1,42 @@
+# id|category|description|debian packages|arch packages|kali metapackage|parrot metapackage
+parrot-arsenal|security|Complete official Parrot Security tool collection||||parrot-tools-full
+parrot-recon|security|Official Parrot information gathering collection||||parrot-tools-infogathering
+parrot-reversing|security|Official Parrot reverse engineering collection||||parrot-tools-reversing
+parrot-cloud|security|Official Parrot cloud assessment collection||||parrot-tools-cloud
+terminal-plus|productivity|More terminal monitoring and transfer utilities|duf glances multitail pv parallel socat rlwrap whois|duf glances multitail pv parallel socat rlwrap whois|
+desktop|productivity|Desktop capture, secrets, sync, backup, and encryption|flameshot keepassxc syncthing rclone restic age|flameshot keepassxc syncthing rclone restic age|
+developer|development|Compilers, databases, Node, Go, and build systems|golang nodejs npm sqlite3 shellcheck clang cmake ninja-build git-lfs|go nodejs npm sqlite shellcheck clang cmake ninja git-lfs|
+containers|development|Distribution-maintained containers and image tooling|docker.io docker-compose podman buildah skopeo|docker docker-compose podman buildah skopeo|
+network-lab|network|Packet analysis, routing, VPN, and network debugging|wireshark tshark tcpdump mtr-tiny traceroute openvpn wireguard-tools ethtool|wireshark-cli tcpdump mtr traceroute openvpn wireguard-tools ethtool|
+forensics|security|Disk, memory, metadata, recovery, and binary inspection|libimage-exiftool-perl binwalk foremost sleuthkit yara|perl-image-exiftool binwalk foremost sleuthkit yara|kali-tools-forensics
+web-audit|security|Authorized web application assessment suite|nikto sqlmap wapiti whatweb|nikto sqlmap wapiti whatweb|kali-tools-web
+wireless-audit|security|Authorized Wi-Fi and radio assessment suite|aircrack-ng reaver wireshark hcxdumptool|aircrack-ng reaver wireshark-qt hcxdumptool|kali-tools-wireless
+password-audit|security|Authorized password auditing and hash analysis|hashcat john hydra crunch|hashcat john hydra crunch|kali-tools-passwords
+reverse-engineering|security|Binary analysis and reverse engineering tools|gdb radare2 apktool jadx|gdb radare2 apktool jadx|kali-tools-reverse-engineering
+osint|security|Open-source intelligence and discovery tooling|whois dnsutils theharvester recon-ng|whois bind theharvester recon-ng|kali-tools-information-gathering
+vulnerability|security|Authorized vulnerability analysis collection|nmap nikto lynis|nmap nikto lynis|kali-tools-vulnerability
+sniffing|security|Authorized traffic inspection and spoofing collection|wireshark tshark ettercap-text-only dsniff|wireshark-cli ettercap dsniff|kali-tools-sniffing-spoofing
+post-exploitation|security|Authorized post-exploitation collection|||kali-tools-post-exploitation
+reporting|security|Security assessment reporting utilities|||kali-tools-reporting
+social-engineering|security|Authorized social-engineering assessment collection|||kali-tools-social-engineering
+hardware|security|Hardware and embedded assessment collection|||kali-tools-hardware
+crypto-stego|security|Cryptography and steganography analysis collection|||kali-tools-crypto-stego
+fuzzing|security|Fuzzing and robustness testing collection|afl++|afl++|kali-tools-fuzzing
+sdr|security|Software-defined radio assessment collection|gnuradio gqrx-sdr|gnuradio gqrx|kali-tools-sdr
+bluetooth|security|Bluetooth assessment collection|bluez wireshark|bluez wireshark-qt|kali-tools-bluetooth
+windows-resources|security|Windows resources for authorized lab work|||kali-tools-windows-resources
+api-testing|development|API inspection, HTTP clients, proxies, and schema tools|httpie jq mitmproxy websocat|httpie jq mitmproxy websocat|
+mobile-lab|security|Android inspection, debugging, decompilation, and mirroring|adb apktool jadx scrcpy|android-tools apktool jadx scrcpy|
+database-audit|security|Authorized database discovery and assessment|sqlmap sqlite3 postgresql-client redis-tools|sqlmap sqlite postgresql redis|kali-tools-database
+exploitation-lab|security|Authorized exploit-development and lab collection|||kali-tools-exploitation
+defensive|security|Host auditing, malware scanning, bans, and integrity monitoring|lynis clamav rkhunter auditd fail2ban aide|lynis clamav rkhunter audit fail2ban aide|
+privacy|network|Tor, proxy routing, VPN, and encrypted DNS utilities|tor torsocks proxychains4 wireguard-tools dnscrypt-proxy|tor torsocks proxychains-ng wireguard-tools dnscrypt-proxy|
+virtualization|development|KVM, libvirt, virtual machine management, and image tools|qemu-kvm libvirt-daemon-system libvirt-clients virt-manager qemu-utils|qemu-full libvirt virt-manager dnsmasq bridge-utils|
+documentation|productivity|Document conversion, diagrams, PDFs, and media processing|pandoc graphviz plantuml imagemagick poppler-utils|pandoc graphviz plantuml imagemagick poppler|
+voip|security|Voice-over-IP assessment collection|||kali-tools-voip
+rfid|security|RFID and NFC assessment collection|||kali-tools-rfid
+wifi-80211|security|Focused IEEE 802.11 assessment collection|||kali-tools-802-11
+malware-analysis|security|Static inspection, YARA, disassembly, and sandbox helpers|yara radare2 gdb binwalk clamav|yara radare2 gdb binwalk clamav|
+detection|security|Kali defensive detection and event-analysis collection|||kali-tools-detect
+gpu-audit|security|GPU-accelerated authorized auditing collection|||kali-tools-gpu
+practice-labs|training|Kali learning and practice environments|||kali-linux-labs

@@ -2,6 +2,10 @@
 
 set -Eeuo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
@@ -23,9 +27,10 @@ if command -v thefuck >/dev/null 2>&1; then
     exit 0
 fi
 
+detect_platform || fail "Unable to detect a supported package manager."
 log "Installing prerequisites..."
-sudo apt update
-sudo apt install -y ca-certificates curl
+pkg_update
+pkg_install ca-certificates curl
 
 export PATH="$HOME/.local/bin:$PATH"
 if ! command -v uv >/dev/null 2>&1; then

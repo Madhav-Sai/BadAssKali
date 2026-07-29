@@ -1,0 +1,553 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+    SOURCE_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" == /* ]] || SOURCE="$SOURCE_DIR/$SOURCE"
+done
+ROOT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+# shellcheck source=lib/state.sh
+source "$ROOT_DIR/lib/state.sh"
+
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+RED="\033[0;31m"
+BLUE="\033[0;34m"
+NC="\033[0m"
+
+log() { echo -e "${GREEN}[+]${NC} $1"; }
+warn() { echo -e "${YELLOW}[!]${NC} $1"; }
+fail() { echo -e "${RED}[-]${NC} $1" >&2; }
+die() {
+    fail "$1"
+    exit 1
+}
+info() { echo -e "${BLUE}[*]${NC} $1"; }
+
+usage() {
+    cat <<'EOF'
+BadAssKali management CLI
+
+Usage: badasskali <command> [options]
+
+Commands:
+  status [--json]              Show platform, installation, and tool status
+  doctor [--json]              Diagnose package, PATH, config, and shell issues
+  logs                          Show recent installer module logs
+  repair <component> [--yes]   Re-run a module (ghostty, aliases, configs, etc.)
+  update [--apply]             Update this checkout; optionally reapply a profile
+  backup                       Snapshot managed user configuration
+  rollback [snapshot] [--yes]  Restore the latest or selected snapshot
+  snapshots                    List available configuration snapshots
+  theme list|apply|show         Manage coordinated Ghostty and tmux themes
+  aliases list|enable|disable|search
+                                Manage optional alias packs
+  addons list|info|install|download|offline-install|remove
+                                Manage optional add-on bundles
+  install [options]             Forward to install.sh
+  uninstall [options]           Forward to uninstall.sh
+  verify                        Run the verifier
+  version                       Show repository revision
+  help                          Show this help
+
+Examples:
+  badasskali doctor
+  badasskali addons install developer,containers
+  badasskali aliases enable kubernetes cloud
+  badasskali theme apply tokyo-night
+  badasskali rollback --yes
+EOF
+}
+
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+json_escape() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\n'/\\n}
+    printf '%s' "$value"
+}
+
+repo_revision() {
+    git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || printf 'unknown\n'
+}
+
+status_command() {
+    local json=false
+    [[ "${1:-}" == "--json" ]] && json=true
+    detect_platform || die "This command requires Linux with /etc/os-release."
+
+    local tools=(zsh ghostty tmux yazi atuin eza fzf zoxide netexec nmap)
+    local installed=0 missing=0 tool
+    for tool in "${tools[@]}"; do
+        if command_exists "$tool"; then
+            installed=$((installed + 1))
+        else
+            missing=$((missing + 1))
+        fi
+    done
+
+    if $json; then
+        printf '{"os":"%s","family":"%s","arch":"%s","revision":"%s","tools":{"installed":%d,"missing":%d},"snapshot":"%s"}\n' \
+            "$(json_escape "$BAK_OS_NAME")" "$BAK_PACKAGE_FAMILY" "$BAK_ARCH" \
+            "$(repo_revision)" "$installed" "$missing" \
+            "$(latest_snapshot 2>/dev/null | sed 's#.*/##' || true)"
+        return
+    fi
+
+    echo "BadAssKali status"
+    echo "  Platform: $BAK_OS_NAME ($BAK_ARCH)"
+    echo "  Package family: $BAK_PACKAGE_FAMILY"
+    echo "  Revision: $(repo_revision)"
+    echo "  Tool checks: $installed installed, $missing missing"
+    echo "  Managed aliases: $([[ -r "$BAK_CONFIG_HOME/aliases.zsh" ]] && echo installed || echo missing)"
+    echo "  Latest snapshot: $(latest_snapshot 2>/dev/null | sed 's#.*/##' || echo none)"
+}
+
+doctor_command() {
+    local json=false
+    [[ "${1:-}" == "--json" ]] && json=true
+    local issues=() notices=()
+
+    if detect_platform; then
+        [[ "$BAK_PACKAGE_FAMILY" != "unknown" ]] || issues+=("Unsupported package-manager family")
+    else
+        issues+=("Missing /etc/os-release")
+        BAK_OS_NAME="unknown"
+        BAK_PACKAGE_FAMILY="unknown"
+    fi
+
+    if [[ "$BAK_PACKAGE_FAMILY" == "debian" ]]; then
+        if command_exists dpkg && [[ -n "$(dpkg --audit 2>/dev/null || true)" ]]; then
+            issues+=("dpkg reports incomplete package operations")
+        fi
+        if command_exists apt-get && ! apt-get check >/dev/null 2>&1; then
+            issues+=("APT reports broken dependencies")
+        fi
+        if [[ "${BAK_OS_ID:-}" == "parrot" ]] && ! pkg_available parrot-core; then
+            issues+=("Parrot repositories do not provide parrot-core")
+        fi
+    fi
+
+    command_exists zsh || issues+=("zsh is missing")
+    [[ "${SHELL##*/}" == "zsh" ]] || notices+=("zsh is not the login shell")
+    [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || issues+=("$HOME/.local/bin is not in PATH")
+    [[ -r "$HOME/.zshrc" ]] || issues+=("$HOME/.zshrc is missing")
+    [[ -r "$BAK_CONFIG_HOME/aliases.zsh" ]] || issues+=("managed aliases are missing")
+    [[ -r "$HOME/.config/ghostty/config" ]] || notices+=("Ghostty config is missing")
+    [[ -r "$HOME/.tmux.conf" ]] || notices+=("tmux config is missing")
+
+    if command_exists ghostty; then
+        ghostty --version >/dev/null 2>&1 || issues+=("Ghostty exists but does not report a version")
+        [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] || notices+=("no graphical display variable is active")
+    else
+        notices+=("Ghostty is not installed")
+    fi
+
+    if command_exists systemctl && systemctl --failed --quiet 2>/dev/null; then
+        notices+=("systemd reports failed units")
+    fi
+
+    if $json; then
+        printf '{"healthy":%s,"issues":[' "$([[ ${#issues[@]} -eq 0 ]] && echo true || echo false)"
+        local index
+        for ((index = 0; index < ${#issues[@]}; index++)); do
+            ((index > 0)) && printf ','
+            printf '"%s"' "$(json_escape "${issues[$index]}")"
+        done
+        printf '],"notices":['
+        for ((index = 0; index < ${#notices[@]}; index++)); do
+            ((index > 0)) && printf ','
+            printf '"%s"' "$(json_escape "${notices[$index]}")"
+        done
+        printf ']}\n'
+    else
+        echo "BadAssKali doctor"
+        if [[ "$BAK_PACKAGE_FAMILY" != "unknown" ]]; then
+            platform_diagnostics
+        else
+            echo "  Platform: $BAK_OS_NAME"
+        fi
+        if [[ ${#issues[@]} -eq 0 ]]; then
+            log "No blocking issues detected."
+        else
+            for issue in "${issues[@]}"; do fail "$issue"; done
+        fi
+        for notice in "${notices[@]}"; do warn "$notice"; done
+    fi
+
+    [[ ${#issues[@]} -eq 0 ]]
+}
+
+component_module() {
+    case "$1" in
+        os) echo 00-os-detect.sh ;;
+        packages) echo 01-packages.sh ;;
+        zsh) echo 02-zsh.sh ;;
+        ohmyzsh) echo 03-ohmyzsh.sh ;;
+        prompt | p10k) echo 04-p10k.sh ;;
+        fonts) echo 05-fonts.sh ;;
+        rust) echo 06-rust.sh ;;
+        ghostty) echo 07-ghostty.sh ;;
+        atuin) echo 08-atuin.sh ;;
+        thefuck) echo 09-thefuck.sh ;;
+        yazi) echo 10-yazi.sh ;;
+        tmux) echo 11-tmux.sh ;;
+        aliases) echo 12-pentest.sh ;;
+        configs) echo 13-configs.sh ;;
+        cargo) echo 14-cargo-tools.sh ;;
+        security) echo 15-security-tools.sh ;;
+        management | cli) echo 16-management.sh ;;
+        projectdiscovery | pd) echo 17-projectdiscovery.sh ;;
+        autorecon) echo 18-autorecon.sh ;;
+        engagement | workspace) echo 19-engagement-workspace.sh ;;
+        recon | workflow) echo 20-recon-workflow.sh ;;
+        *) return 1 ;;
+    esac
+}
+
+repair_command() {
+    local component="${1:-}"
+    [[ -n "$component" ]] || die "Usage: badasskali repair <component> [--yes]"
+    shift || true
+    local assume_yes=false
+    [[ "${1:-}" == "--yes" ]] && assume_yes=true
+    if [[ "$component" == "all" ]]; then
+        if ! $assume_yes; then
+            read -rp "Reapply the terminal profile? [y/N] " answer
+            [[ "$answer" =~ ^[Yy]$ ]] || return 0
+        fi
+        exec "$ROOT_DIR/install.sh" --profile terminal --yes
+    fi
+    local module
+    module="$(component_module "$component")" || die "Unknown component: $component"
+
+    if ! $assume_yes; then
+        read -rp "Re-run $module? [y/N] " answer
+        [[ "$answer" =~ ^[Yy]$ ]] || return 0
+    fi
+    exec bash "$ROOT_DIR/modules/$module"
+}
+
+backup_command() {
+    local snapshot
+    snapshot="$(snapshot_begin manual)"
+    export BADASSKALI_SNAPSHOT_DIR="$snapshot"
+    local targets=(
+        "$HOME/.zshrc"
+        "$HOME/.aliases"
+        "$HOME/.tmux.conf"
+        "$HOME/.config/ghostty"
+        "$HOME/.config/yazi"
+        "$BAK_CONFIG_HOME"
+    )
+    local target
+    for target in "${targets[@]}"; do backup_path "$target"; done
+    log "Snapshot created: ${snapshot##*/}"
+}
+
+rollback_command() {
+    local requested="latest" assume_yes=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --yes) assume_yes=true ;;
+            *) requested="$1" ;;
+        esac
+        shift
+    done
+    local snapshot
+    if [[ "$requested" == "latest" ]]; then
+        snapshot="$(latest_snapshot)" || die "No snapshots are available."
+    else
+        snapshot="$BAK_STATE_HOME/backups/$requested"
+    fi
+    [[ -r "$snapshot/manifest.tsv" ]] || die "Snapshot not found: $requested"
+    if ! $assume_yes; then
+        read -rp "Restore ${snapshot##*/}? Current managed files will change. [y/N] " answer
+        [[ "$answer" =~ ^[Yy]$ ]] || return 0
+    fi
+    restore_snapshot "$snapshot" || die "Snapshot restore failed."
+    log "Restored snapshot: ${snapshot##*/}"
+}
+
+theme_value() {
+    local file="$1" key="$2"
+    sed -n "s/^${key}=//p" "$file" | head -n 1
+}
+
+theme_command() {
+    local action="${1:-list}"
+    shift || true
+    local theme_dir="$ROOT_DIR/configs/themes"
+    case "$action" in
+        list)
+            local file
+            for file in "$theme_dir"/*.conf; do
+                printf '%-18s %s\n' "$(basename "$file" .conf)" "$(theme_value "$file" name)"
+            done
+            ;;
+        show)
+            local name="${1:-}"
+            [[ -r "$theme_dir/$name.conf" ]] || die "Unknown theme: $name"
+            cat "$theme_dir/$name.conf"
+            ;;
+        apply)
+            local name="${1:-}"
+            local file="$theme_dir/$name.conf"
+            [[ -r "$file" ]] || die "Unknown theme: $name"
+            local tmux_bg tmux_fg tmux_accent temporary
+            tmux_bg="$(theme_value "$file" tmux_bg)"
+            tmux_fg="$(theme_value "$file" tmux_fg)"
+            tmux_accent="$(theme_value "$file" tmux_accent)"
+            snapshot_begin theme >/dev/null
+
+            temporary="$(mktemp -t badasskali-theme.XXXXXX)"
+            cat >"$temporary" <<EOF
+background = $tmux_bg
+foreground = $tmux_fg
+cursor-color = $tmux_accent
+selection-background = $tmux_accent
+split-divider-color = $tmux_accent
+EOF
+            replace_managed_block "$HOME/.config/ghostty/config" theme "$temporary"
+            cat >"$temporary" <<EOF
+set -g status-style 'bg=$tmux_bg,fg=$tmux_fg'
+set -g pane-active-border-style 'fg=$tmux_accent'
+EOF
+            replace_managed_block "$HOME/.tmux.conf" theme "$temporary"
+            rm -f -- "$temporary"
+            printf '%s\n' "$name" >"$BAK_CONFIG_HOME/active-theme"
+            command_exists tmux && tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true
+            log "Applied theme: $(theme_value "$file" name)"
+            ;;
+        *) die "Usage: badasskali theme list|show|apply [name]" ;;
+    esac
+}
+
+install_alias_assets() {
+    snapshot_ensure aliases
+    backup_path "$BAK_CONFIG_HOME/aliases.zsh"
+    backup_path "$BAK_CONFIG_HOME/alias-packs"
+    backup_path "$BAK_CONFIG_HOME/enabled-alias-packs"
+    backup_path "$HOME/.aliases"
+    mkdir -p "$BAK_CONFIG_HOME/alias-packs"
+    install -m 0644 "$ROOT_DIR/configs/aliases.zsh" "$BAK_CONFIG_HOME/aliases.zsh"
+    local file
+    for file in "$ROOT_DIR"/configs/alias-packs/*.zsh; do
+        install -m 0644 "$file" "$BAK_CONFIG_HOME/alias-packs/$(basename "$file")"
+    done
+    touch "$BAK_CONFIG_HOME/enabled-alias-packs"
+    touch "$HOME/.aliases"
+    if ! grep -Fq '# BADASSKALI_ALIASES' "$HOME/.aliases"; then
+        cat >>"$HOME/.aliases" <<'EOF'
+
+# BADASSKALI_ALIASES
+[[ -r "$HOME/.config/badasskali/aliases.zsh" ]] && source "$HOME/.config/badasskali/aliases.zsh"
+EOF
+    fi
+}
+
+aliases_command() {
+    local action="${1:-list}"
+    shift || true
+    case "$action" in
+        list)
+            local file pack state
+            for file in "$ROOT_DIR"/configs/alias-packs/*.zsh; do
+                pack="$(basename "$file" .zsh)"
+                state="disabled"
+                if [[ -r "$BAK_CONFIG_HOME/enabled-alias-packs" ]] &&
+                    grep -Fxq "$pack" "$BAK_CONFIG_HOME/enabled-alias-packs"; then
+                    state="enabled"
+                fi
+                printf '%-18s %s\n' "$pack" "$state"
+            done
+            ;;
+        enable)
+            [[ $# -gt 0 ]] || die "Name at least one alias pack."
+            install_alias_assets
+            local pack
+            for pack in "$@"; do
+                [[ -r "$ROOT_DIR/configs/alias-packs/$pack.zsh" ]] || die "Unknown alias pack: $pack"
+                grep -Fxq "$pack" "$BAK_CONFIG_HOME/enabled-alias-packs" ||
+                    printf '%s\n' "$pack" >>"$BAK_CONFIG_HOME/enabled-alias-packs"
+                log "Enabled alias pack: $pack"
+            done
+            ;;
+        disable)
+            [[ $# -gt 0 ]] || die "Name at least one alias pack."
+            install_alias_assets
+            local temporary="$BAK_CONFIG_HOME/enabled-alias-packs.tmp"
+            cp "$BAK_CONFIG_HOME/enabled-alias-packs" "$temporary"
+            local pack
+            for pack in "$@"; do
+                grep -Fxv "$pack" "$temporary" >"${temporary}.next" || true
+                mv "${temporary}.next" "$temporary"
+                log "Disabled alias pack: $pack"
+            done
+            mv "$temporary" "$BAK_CONFIG_HOME/enabled-alias-packs"
+            ;;
+        search)
+            [[ $# -eq 1 ]] || die "Usage: badasskali aliases search <text>"
+            grep -Rni -- "$1" "$ROOT_DIR/configs/aliases.zsh" "$ROOT_DIR/configs/alias-packs" || true
+            ;;
+        *) die "Usage: badasskali aliases list|enable|disable|search" ;;
+    esac
+    [[ "$action" == "enable" || "$action" == "disable" ]] &&
+        info "Reload with: source ~/.aliases"
+}
+
+addon_line() {
+    local requested="$1"
+    awk -F'|' -v requested="$requested" '$1 == requested {print; exit}' "$ROOT_DIR/configs/addons.tsv"
+}
+
+addon_packages() {
+    local line="$1"
+    IFS='|' read -r id category description debian arch kali parrot <<<"$line"
+    if [[ "$BAK_OS_ID" == "kali" && -n "$kali" ]]; then
+        printf '%s\n' "$kali"
+    elif [[ "$BAK_OS_ID" == "parrot" && -n "$parrot" ]]; then
+        printf '%s\n' "$parrot"
+    elif [[ "$BAK_PACKAGE_FAMILY" == "debian" ]]; then
+        printf '%s\n' "$debian"
+    elif [[ "$BAK_PACKAGE_FAMILY" == "arch" ]]; then
+        printf '%s\n' "$arch"
+    fi
+}
+
+addons_command() {
+    local action="${1:-list}"
+    shift || true
+    detect_platform || die "Add-on management requires Linux."
+    if [[ "$action" == "download" ]]; then
+        BADASSKALI_DOWNLOAD_ONLY=true
+        export BADASSKALI_DOWNLOAD_ONLY
+        action="install"
+    elif [[ "$action" == "offline-install" ]]; then
+        BADASSKALI_OFFLINE=true
+        export BADASSKALI_OFFLINE
+        action="install"
+    fi
+    local download_mode="${BADASSKALI_DOWNLOAD_ONLY:-false}"
+    case "$action" in
+        list)
+            awk -F'|' '!/^#/ && NF >= 3 {printf "%-22s %-13s %s\n", $1, $2, $3}' "$ROOT_DIR/configs/addons.tsv"
+            ;;
+        info)
+            [[ $# -eq 1 ]] || die "Usage: badasskali addons info <id>"
+            local line
+            line="$(addon_line "$1")"
+            [[ -n "$line" ]] || die "Unknown add-on: $1"
+            IFS='|' read -r id category description debian arch kali parrot <<<"$line"
+            echo "ID: $id"
+            echo "Category: $category"
+            echo "Description: $description"
+            echo "Packages: $(addon_packages "$line")"
+            ;;
+        install | remove)
+            [[ $# -gt 0 ]] || die "Provide comma-separated add-on IDs."
+            local joined="$*" requested line packages package
+            local -a ids=() available=()
+            IFS=',' read -r -a ids <<<"$joined"
+            pkg_update
+            for requested in "${ids[@]}"; do
+                requested="${requested//[[:space:]]/}"
+                line="$(addon_line "$requested")"
+                [[ -n "$line" ]] || die "Unknown add-on: $requested"
+                packages="$(addon_packages "$line")"
+                [[ -n "$packages" ]] || {
+                    warn "$requested is not packaged for $BAK_OS_NAME"
+                    continue
+                }
+                available=()
+                for package in $packages; do
+                    if [[ "$action" == "remove" ]] && pkg_installed "$package"; then
+                        available+=("$package")
+                    elif [[ "$action" == "install" ]] && pkg_available "$package"; then
+                        available+=("$package")
+                    elif [[ "$action" == "install" ]]; then
+                        warn "Skipping unavailable package: $package"
+                    fi
+                done
+                [[ ${#available[@]} -gt 0 ]] || continue
+                if [[ "$action" == "install" ]]; then
+                    pkg_install "${available[@]}"
+                    if [[ "$download_mode" == "true" ]]; then
+                        log "Downloaded add-on packages: $requested"
+                    else
+                        mkdir -p "$BAK_CONFIG_HOME"
+                        printf '%s\n' "$requested" >>"$BAK_CONFIG_HOME/installed-addons"
+                        sort -u -o "$BAK_CONFIG_HOME/installed-addons" "$BAK_CONFIG_HOME/installed-addons"
+                        log "Installed add-on: $requested"
+                    fi
+                else
+                    pkg_remove "${available[@]}"
+                    if [[ -r "$BAK_CONFIG_HOME/installed-addons" ]]; then
+                        grep -Fxv "$requested" "$BAK_CONFIG_HOME/installed-addons" \
+                            >"$BAK_CONFIG_HOME/installed-addons.tmp" || true
+                        mv "$BAK_CONFIG_HOME/installed-addons.tmp" "$BAK_CONFIG_HOME/installed-addons"
+                    fi
+                    log "Removed add-on packages for: $requested"
+                fi
+            done
+            ;;
+        *) die "Usage: badasskali addons list|info|install|download|offline-install|remove" ;;
+    esac
+}
+
+update_command() {
+    local apply=false
+    [[ "${1:-}" == "--apply" ]] && apply=true
+    command_exists git || die "git is required."
+    [[ -d "$ROOT_DIR/.git" ]] || die "This installation is not a Git checkout."
+    [[ -z "$(git -C "$ROOT_DIR" status --porcelain)" ]] ||
+        die "The checkout has local changes; commit or stash them before updating."
+    git -C "$ROOT_DIR" pull --ff-only
+    log "Repository updated."
+    $apply && exec "$ROOT_DIR/install.sh" --profile terminal --yes
+}
+
+logs_command() {
+    local log_root="${XDG_STATE_HOME:-$HOME/.local/state}/badasskali/logs"
+    [[ -d "$log_root" ]] || die "No installer logs are available yet."
+    find "$log_root" -mindepth 1 -maxdepth 2 -type f -name '*.log' -print |
+        sort -r |
+        head -n 30
+}
+
+main() {
+    local command="${1:-help}"
+    shift || true
+    case "$command" in
+        status) status_command "$@" ;;
+        doctor) doctor_command "$@" ;;
+        logs) logs_command ;;
+        repair) repair_command "$@" ;;
+        update) update_command "$@" ;;
+        backup) backup_command "$@" ;;
+        rollback) rollback_command "$@" ;;
+        snapshots)
+            state_init
+            list_snapshots
+            ;;
+        theme | themes) theme_command "$@" ;;
+        alias | aliases) aliases_command "$@" ;;
+        addon | addons) addons_command "$@" ;;
+        install) exec "$ROOT_DIR/install.sh" "$@" ;;
+        uninstall) exec "$ROOT_DIR/uninstall.sh" "$@" ;;
+        verify) exec "$ROOT_DIR/verify.sh" "$@" ;;
+        version) echo "BadAssKali $(repo_revision)" ;;
+        help | -h | --help) usage ;;
+        *) die "Unknown command: $command (run badasskali help)" ;;
+    esac
+}
+
+main "$@"

@@ -57,6 +57,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Persist Cargo PATH for future shells
 if ! grep -q '.cargo/bin' "$HOME/.zshrc" 2>/dev/null; then
+    # shellcheck disable=SC2016
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$HOME/.zshrc"
 fi
 

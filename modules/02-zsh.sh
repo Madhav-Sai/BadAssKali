@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
@@ -20,6 +24,8 @@ fail() {
     exit 1
 }
 
+detect_platform || fail "Unable to detect a supported package manager."
+
 echo
 echo "=================================="
 echo " ZSH Setup"
@@ -30,9 +36,8 @@ if ! command -v zsh >/dev/null 2>&1; then
 
     log "Installing ZSH..."
 
-    sudo apt update
-
-    sudo apt install -y zsh
+    pkg_update
+    pkg_install zsh
 
 fi
 
@@ -52,7 +57,10 @@ fi
 
 log "Setting ZSH as default shell..."
 
-chsh -s "$(which zsh)"
+if ! chsh -s "$(command -v zsh)"; then
+    warn "Could not change the login shell automatically."
+    warn "Run this after installation: chsh -s $(command -v zsh)"
+fi
 
 echo
 echo "=================================="

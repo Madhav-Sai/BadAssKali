@@ -28,6 +28,11 @@ echo
 
 FONT_DIR="$HOME/.local/share/fonts"
 
+for required_command in fc-list fc-cache wget unzip; do
+    command -v "$required_command" >/dev/null 2>&1 ||
+        fail "$required_command is required. Re-run module 01 (base packages) first."
+done
+
 if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
 
     warn "JetBrainsMono Nerd Font already installed."
@@ -45,7 +50,7 @@ cd "$TMP_DIR"
 log "Downloading JetBrainsMono Nerd Font..."
 
 wget -O JetBrainsMono.zip \
-https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+    https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
 
 log "Extracting fonts..."
 
@@ -57,7 +62,7 @@ cp JetBrainsMono/*.ttf "$FONT_DIR"
 
 fc-cache -fv >/dev/null 2>&1
 
-rm -rf "$TMP_DIR"
+rm -rf -- "$TMP_DIR"
 
 echo
 echo "=================================="

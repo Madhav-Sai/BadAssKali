@@ -27,51 +27,40 @@ echo "=================================="
 echo
 
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
-
-    warn "Oh My Zsh already installed."
-
-    exit 0
-
+    warn "Oh My Zsh already installed; checking plugins."
+else
+    log "Installing Oh My Zsh..."
+    RUNZSH=no \
+        CHSH=no \
+        KEEP_ZSHRC=yes \
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
-
-log "Installing Oh My Zsh..."
-
-RUNZSH=no \
-CHSH=no \
-KEEP_ZSHRC=yes \
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
-log "Installing Powerlevel10k..."
+install_repo() {
+    local name="$1" url="$2" destination="$3"
+    if [[ -d "$destination/.git" ]]; then
+        log "Updating $name..."
+        git -C "$destination" pull --ff-only || warn "$name update was skipped."
+    elif [[ -e "$destination" ]]; then
+        warn "$name destination exists but is not a Git checkout: $destination"
+    else
+        log "Installing $name..."
+        git clone --depth=1 "$url" "$destination"
+    fi
+}
 
-git clone --depth=1 \
-https://github.com/romkatv/powerlevel10k.git \
-"$ZSH_CUSTOM/themes/powerlevel10k"
-
-log "Installing zsh-autosuggestions..."
-
-git clone --depth=1 \
-https://github.com/zsh-users/zsh-autosuggestions \
-"$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-
-log "Installing zsh-syntax-highlighting..."
-
-git clone --depth=1 \
-https://github.com/zsh-users/zsh-syntax-highlighting \
-"$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-
-log "Installing zsh-completions..."
-
-git clone --depth=1 \
-https://github.com/zsh-users/zsh-completions \
-"$ZSH_CUSTOM/plugins/zsh-completions"
-
-log "Installing fzf-tab..."
-
-git clone --depth=1 \
-https://github.com/Aloxaf/fzf-tab \
-"$ZSH_CUSTOM/plugins/fzf-tab"
+install_repo "Powerlevel10k" https://github.com/romkatv/powerlevel10k.git \
+    "$ZSH_CUSTOM/themes/powerlevel10k"
+install_repo "zsh-autosuggestions" https://github.com/zsh-users/zsh-autosuggestions \
+    "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+install_repo "zsh-syntax-highlighting" https://github.com/zsh-users/zsh-syntax-highlighting \
+    "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+install_repo "zsh-completions" https://github.com/zsh-users/zsh-completions \
+    "$ZSH_CUSTOM/plugins/zsh-completions"
+install_repo "fzf-tab" https://github.com/Aloxaf/fzf-tab \
+    "$ZSH_CUSTOM/plugins/fzf-tab"
 
 echo
 echo "=================================="

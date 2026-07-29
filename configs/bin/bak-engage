@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+BASE_DIR="${BAK_ENGAGEMENT_HOME:-$HOME/Engagements}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/badasskali"
+CURRENT_FILE="$STATE_DIR/current-engagement"
+
+die() {
+    echo "[-] $*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Scope and evidence workspace manager
+
+Usage:
+  bak-engage new NAME [--scope TARGETS] [--authorized]
+  bak-engage use NAME
+  bak-engage current
+  bak-engage status
+  bak-engage authorize --i-have-written-authorization
+  bak-engage target add TARGET...
+  bak-engage target list
+  bak-engage note TEXT...
+  bak-engage finding new SEVERITY TITLE...
+
+--authorized records that you confirmed permission for this engagement.
+It does not grant permission or replace a written rules-of-engagement document.
+EOF
+}
+
+valid_name() {
+    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+}
+
+current_path() {
+    [[ -r "$CURRENT_FILE" ]] || die "No engagement selected. Run: bak-engage new NAME"
+    local path
+    path="$(<"$CURRENT_FILE")"
+    [[ -d "$path" ]] || die "Selected engagement no longer exists: $path"
+    printf '%s\n' "$path"
+}
+
+set_current() {
+    mkdir -p "$STATE_DIR"
+    printf '%s\n' "$1" >"$CURRENT_FILE"
+}
+
+add_targets() {
+    local path="$1"
+    shift
+    [[ $# -gt 0 ]] || die "Name at least one target."
+    local target
+    for target in "$@"; do
+        target="${target#"${target%%[![:space:]]*}"}"
+        target="${target%"${target##*[![:space:]]}"}"
+        [[ -n "$target" ]] && printf '%s\n' "$target" >>"$path/scope/targets.txt"
+    done
+    sort -u -o "$path/scope/targets.txt" "$path/scope/targets.txt"
+}
+
+new_engagement() {
+    local name="${1:-}"
+    [[ -n "$name" ]] || die "Usage: bak-engage new NAME [--scope TARGETS] [--authorized]"
+    valid_name "$name" || die "NAME may contain letters, numbers, dots, underscores, and hyphens."
+    shift
+    local scope="" authorized=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --scope)
+                [[ $# -ge 2 ]] || die "--scope requires a comma-separated target list."
+                scope="$2"
+                shift 2
+                ;;
+            --authorized)
+                authorized=true
+                shift
+                ;;
+            *) die "Unknown option: $1" ;;
+        esac
+    done
+
+    local path="$BASE_DIR/$name"
+    [[ ! -e "$path" ]] || die "Engagement already exists: $path"
+    mkdir -p "$path"/{scope,notes,evidence,scans,findings,report,logs}
+    : >"$path/scope/targets.txt"
+    if [[ -n "$scope" ]]; then
+        local -a targets=()
+        IFS=',' read -r -a targets <<<"$scope"
+        add_targets "$path" "${targets[@]}"
+    fi
+    cat >"$path/README.md" <<EOF
+# $name
+
+Created: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+Keep the signed rules of engagement in \`scope/\` and redact secrets from evidence.
+EOF
+    cat >"$path/report/report.md" <<'EOF'
+# Security Assessment Report
+
+## Executive summary
+
+## Scope and limitations
+
+## Methodology
+
+## Findings summary
+
+## Detailed findings
+
+## Recommendations
+
+## Appendices
+EOF
+    if $authorized; then
+        printf 'Confirmed by %s on %s\n' "${USER:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            >"$path/scope/authorization-confirmed.txt"
+    fi
+    set_current "$path"
+    echo "[+] Created and selected: $path"
+}
+
+finding_new() {
+    local path="$1" severity="${2:-}"
+    shift 2 || true
+    [[ "$severity" =~ ^(info|low|medium|high|critical)$ ]] ||
+        die "Severity must be info, low, medium, high, or critical."
+    [[ $# -gt 0 ]] || die "A finding title is required."
+    local title="$*" timestamp file
+    timestamp="$(date -u +%Y%m%d-%H%M%S)"
+    file="$path/findings/${timestamp}-${severity}.md"
+    local suffix=1
+    while [[ -e "$file" ]]; do
+        file="$path/findings/${timestamp}-${severity}-${suffix}.md"
+        suffix=$((suffix + 1))
+    done
+    cat >"$file" <<EOF
+# $title
+
+- Severity: $severity
+- Status: open
+- Created: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+## Description
+
+## Evidence
+
+## Impact
+
+## Reproduction
+
+## Remediation
+
+## Retest
+EOF
+    echo "[+] Created: $file"
+}
+
+command="${1:-help}"
+shift || true
+case "$command" in
+    new) new_engagement "$@" ;;
+    use)
+        [[ $# -eq 1 ]] || die "Usage: bak-engage use NAME"
+        valid_name "$1" || die "Invalid engagement name."
+        [[ -d "$BASE_DIR/$1" ]] || die "Engagement not found: $1"
+        set_current "$BASE_DIR/$1"
+        echo "[+] Selected: $BASE_DIR/$1"
+        ;;
+    current) current_path ;;
+    status)
+        path="$(current_path)"
+        echo "Engagement: ${path##*/}"
+        echo "Path: $path"
+        echo "Targets: $(wc -l <"$path/scope/targets.txt" | tr -d ' ')"
+        echo "Findings: $(find "$path/findings" -type f -name '*.md' | wc -l | tr -d ' ')"
+        [[ -r "$path/scope/authorization-confirmed.txt" ]] && echo "Authorization marker: present" || echo "Authorization marker: missing"
+        ;;
+    authorize)
+        [[ "${1:-}" == "--i-have-written-authorization" ]] ||
+            die "Usage: bak-engage authorize --i-have-written-authorization"
+        path="$(current_path)"
+        printf 'Confirmed by %s on %s\n' "${USER:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            >"$path/scope/authorization-confirmed.txt"
+        echo "[+] Authorization marker recorded. Keep the signed rules of engagement in $path/scope/."
+        ;;
+    target)
+        subcommand="${1:-list}"
+        shift || true
+        path="$(current_path)"
+        case "$subcommand" in
+            add) add_targets "$path" "$@" ;;
+            list) cat "$path/scope/targets.txt" ;;
+            *) die "Usage: bak-engage target add TARGET... | target list" ;;
+        esac
+        ;;
+    note)
+        [[ $# -gt 0 ]] || die "A note is required."
+        path="$(current_path)"
+        printf -- '- %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >>"$path/notes/timeline.md"
+        echo "[+] Note recorded."
+        ;;
+    finding)
+        [[ "${1:-}" == "new" ]] || die "Usage: bak-engage finding new SEVERITY TITLE"
+        shift
+        finding_new "$(current_path)" "$@"
+        ;;
+    help | -h | --help) usage ;;
+    *) die "Unknown command: $command (run: bak-engage help)" ;;
+esac

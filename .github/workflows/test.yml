@@ -1,0 +1,41 @@
+name: Shell tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        image: [ubuntu:24.04, debian:13]
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install test dependencies
+        run: |
+          apt-get update
+          apt-get install -y bash bats git shellcheck shfmt zsh
+      - uses: actions/checkout@v4
+      - name: Syntax
+        run: bash -n badasskali install.sh uninstall.sh verify.sh modules/*.sh lib/*.sh configs/bin/*
+      - name: ShellCheck
+        run: shellcheck -x badasskali install.sh uninstall.sh verify.sh modules/*.sh lib/*.sh configs/bin/*
+      - name: Formatting check
+        run: >-
+          shfmt -d -i 4 -ci badasskali install.sh uninstall.sh
+          verify.sh lib/platform.sh lib/state.sh modules/00-os-detect.sh
+          modules/01-packages.sh modules/07-ghostty.sh modules/10-yazi.sh
+          modules/12-pentest.sh modules/13-configs.sh modules/16-management.sh
+          modules/17-projectdiscovery.sh modules/18-autorecon.sh
+          modules/19-engagement-workspace.sh modules/20-recon-workflow.sh
+          configs/bin/bak-engage configs/bin/bak-recon
+      - name: Zsh syntax
+        run: zsh -n configs/aliases.zsh configs/alias-packs/*.zsh
+      - name: Bats
+        run: bats tests
+      - name: Whitespace
+        run: git diff --check

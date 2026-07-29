@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source "$HOME/.cargo/env" 2>/dev/null || true
 export PATH="$HOME/.cargo/bin:$PATH"
 

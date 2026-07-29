@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+
+# shellcheck disable=SC1091
 source "$HOME/.cargo/env" 2>/dev/null || true
 export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -29,32 +34,33 @@ echo " Security Tools Installation"
 echo "=================================="
 echo
 
+detect_platform || fail "Unable to detect a supported package manager."
 log "Updating package lists..."
+pkg_update
 
-sudo apt update
+case "$BAK_PACKAGE_FAMILY" in
+    debian)
+        SECURITY_TOOLS=(netexec ffuf feroxbuster gobuster smbclient ldap-utils enum4linux-ng seclists evil-winrm responder bloodhound bloodhound-ce-python impacket-scripts)
+        ;;
+    arch)
+        SECURITY_TOOLS=(ffuf feroxbuster gobuster smbclient openldap seclists impacket)
+        ;;
+    fedora)
+        SECURITY_TOOLS=(ffuf gobuster samba-client openldap-clients)
+        ;;
+    suse)
+        SECURITY_TOOLS=(gobuster samba-client openldap2-client)
+        ;;
+esac
 
-APT_TOOLS=(
-    netexec
-    ffuf
-    feroxbuster
-    gobuster
-    smbclient
-    ldap-utils
-    enum4linux-ng
-    seclists
-    evil-winrm
-    responder
-    bloodhound
-    bloodhound-ce-python
-    impacket-scripts
-)
+for tool in "${SECURITY_TOOLS[@]}"; do
 
-for tool in "${APT_TOOLS[@]}"
-do
-
-    log "Installing $tool..."
-
-    sudo apt install -y "$tool" || warn "$tool installation failed"
+    if pkg_available "$tool"; then
+        log "Installing $tool..."
+        pkg_install "$tool" || warn "$tool installation failed"
+    else
+        warn "$tool is unavailable in the configured repositories"
+    fi
 
 done
 

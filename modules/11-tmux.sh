@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 NC="\033[0m"
@@ -28,8 +32,9 @@ if [[ -d "$HOME/.tmux/plugins/tpm" ]]; then
 
 fi
 
-sudo apt update
-sudo apt install -y tmux
+detect_platform || { echo "Unable to detect a supported package manager." >&2; exit 1; }
+pkg_update
+pkg_install tmux
 
 mkdir -p "$HOME/.tmux/plugins"
 

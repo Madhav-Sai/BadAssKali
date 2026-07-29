@@ -1,0 +1,7 @@
+alias web-headers='curl -sSIk'
+alias web-tech='whatweb -a 3'
+alias web-nikto='nikto -h'
+alias web-dir='feroxbuster -u'
+alias web-fuzz='ffuf -u'
+alias web-sqlmap='sqlmap -u'
+alias web-zap='zaproxy'

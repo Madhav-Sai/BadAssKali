@@ -1,0 +1,8 @@
+alias nxc-smb='nxc smb'
+alias nxc-winrm='nxc winrm'
+alias nxc-ldap='nxc ldap'
+alias nxc-rdp='nxc rdp'
+alias impacket-secretsdump='secretsdump.py'
+alias impacket-psexec='psexec.py'
+alias impacket-wmiexec='wmiexec.py'
+alias bloodhound-collect='bloodhound-python -c All'

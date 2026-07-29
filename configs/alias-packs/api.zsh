@@ -1,0 +1,7 @@
+alias api-get='http GET'
+alias api-post='http POST'
+alias api-headers='curl -sSIk'
+alias api-json='jq .'
+alias websocket='websocat'
+alias proxy-http='mitmproxy'
+alias proxy-web='mitmweb'

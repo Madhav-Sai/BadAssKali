@@ -1,0 +1,6 @@
+alias wifi-monitor='sudo airmon-ng'
+alias wifi-scan='sudo airodump-ng'
+alias wifi-channels='sudo iw dev'
+alias rfkill-list='rfkill list'
+alias bluetooth-scan='bluetoothctl scan on'
+alias capture-wifi='sudo hcxdumptool'

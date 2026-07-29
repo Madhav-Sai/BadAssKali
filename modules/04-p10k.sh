@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/state.sh
+source "$ROOT_DIR/lib/state.sh"
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
@@ -26,7 +30,10 @@ echo " Powerlevel10k Configuration"
 echo "=================================="
 echo
 
-cat > "$HOME/.zshrc" << 'EOF'
+zshrc_content="$(mktemp -t badasskali-zshrc.XXXXXX)"
+trap 'rm -f -- "$zshrc_content"' EXIT
+
+cat > "$zshrc_content" << 'EOF'
 # Enable Powerlevel10k instant prompt
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
@@ -116,7 +123,14 @@ if command -v fastfetch >/dev/null 2>&1; then
 fi
 EOF
 
-log ".zshrc created."
+if [[ "${BADASSKALI_CONFIG_MODE:-merge}" == "replace" ]]; then
+    backup_path "$HOME/.zshrc"
+    install -m 0644 "$zshrc_content" "$HOME/.zshrc"
+else
+    replace_managed_block "$HOME/.zshrc" shell "$zshrc_content"
+fi
+
+log ".zshrc configured with backup support."
 
 echo
 echo "=================================="

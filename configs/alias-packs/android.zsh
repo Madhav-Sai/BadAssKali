@@ -1,0 +1,8 @@
+alias adb-devices='adb devices -l'
+alias adb-shell='adb shell'
+alias adb-install='adb install -r'
+alias adb-logcat='adb logcat'
+alias apk-decode='apktool d'
+alias apk-build='apktool b'
+alias jadx-gui='jadx-gui'
+alias android-mirror='scrcpy'

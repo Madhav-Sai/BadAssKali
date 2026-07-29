@@ -1,0 +1,8 @@
+alias strings-wide='strings -el'
+alias metadata='exiftool'
+alias filemagic='file --keep-going'
+alias hex='xxd -g 1'
+alias entropy='ent'
+alias carve='foremost'
+alias timeline='fls -r -m /'
+alias yara-scan='yara -r'

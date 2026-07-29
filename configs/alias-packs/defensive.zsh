@@ -1,0 +1,7 @@
+alias audit-host='sudo lynis audit system'
+alias scan-malware='clamscan -ri'
+alias failed-logins='sudo journalctl _SYSTEMD_UNIT=sshd.service | grep -i failed'
+alias auth-events='sudo journalctl -u ssh --since today'
+alias open-files='sudo lsof -nP'
+alias firewall='sudo nft list ruleset'
+alias bans='sudo fail2ban-client status'

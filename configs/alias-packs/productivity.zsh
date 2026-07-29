@@ -1,0 +1,7 @@
+alias todo='${EDITOR:-nvim} "$HOME/notes/todo.md"'
+alias journal='${EDITOR:-nvim} "$HOME/notes/journal-$(date +%F).md"'
+alias week='date +"%G-W%V"'
+alias now='date +"%Y-%m-%d %H:%M:%S %Z"'
+alias pomodoro='timer 25m'
+alias sync-files='syncthing cli operations restart'
+alias backup-home='restic backup "$HOME"'

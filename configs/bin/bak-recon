@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/badasskali"
+CURRENT_FILE="$STATE_DIR/current-engagement"
+mode="${1:-help}"
+target="${2:-}"
+confirmation="${3:-}"
+
+die() {
+    echo "[-] $*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Scope-aware reconnaissance workflow
+
+Usage:
+  bak-recon discover DOMAIN --i-have-authorization
+  bak-recon web TARGET --i-have-authorization
+  bak-recon full DOMAIN --i-have-authorization
+
+discover: subdomain discovery only
+web:      HTTP probing, crawling, and high/critical Nuclei checks
+full:     discovery, conservative port probing, web probing, crawling, and checks
+
+The target must match the selected engagement scope. Automated scans require
+both an engagement authorization marker and the explicit confirmation flag.
+EOF
+}
+
+[[ "$mode" == "help" || "$mode" == "-h" || "$mode" == "--help" ]] && {
+    usage
+    exit 0
+}
+
+[[ -r "$CURRENT_FILE" ]] || die "No engagement selected. Run: bak-engage new NAME"
+ENGAGEMENT="$(<"$CURRENT_FILE")"
+[[ -d "$ENGAGEMENT" ]] || die "Selected engagement does not exist: $ENGAGEMENT"
+[[ -r "$ENGAGEMENT/scope/authorization-confirmed.txt" ]] ||
+    die "Authorization marker missing. Recreate the engagement with --authorized after confirming permission."
+
+[[ "$mode" =~ ^(discover|web|full)$ ]] || die "Unknown mode: $mode"
+[[ -n "$target" ]] || die "A target is required."
+[[ "$confirmation" == "--i-have-authorization" ]] ||
+    die "Pass --i-have-authorization after checking the rules of engagement."
+
+normalized="${target#http://}"
+normalized="${normalized#https://}"
+normalized="${normalized%%/*}"
+normalized="${normalized%%:*}"
+
+in_scope=false
+while IFS= read -r scope; do
+    scope="${scope#http://}"
+    scope="${scope#https://}"
+    scope="${scope%%/*}"
+    scope="${scope%%:*}"
+    [[ -n "$scope" ]] || continue
+    if [[ "$normalized" == "$scope" || "$normalized" == *".$scope" ]]; then
+        in_scope=true
+        break
+    fi
+done <"$ENGAGEMENT/scope/targets.txt"
+$in_scope || die "Target is outside the selected engagement scope: $normalized"
+
+require_tools() {
+    local missing=() tool
+    for tool in "$@"; do
+        command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+    done
+    [[ ${#missing[@]} -eq 0 ]] ||
+        die "Missing tools: ${missing[*]}. Run modules 17 and 20."
+}
+
+run_dir="$ENGAGEMENT/scans/$(date -u +%Y%m%d-%H%M%S)-$mode"
+mkdir -p "$run_dir"
+printf '%s\n' "$target" >"$run_dir/requested-target.txt"
+
+case "$mode" in
+    discover)
+        require_tools subfinder
+        subfinder -silent -d "$normalized" -rl 20 -o "$run_dir/subdomains.txt"
+        ;;
+    web)
+        require_tools httpx katana nuclei
+        printf '%s\n' "$target" | httpx -silent -rate-limit 25 -o "$run_dir/live-web.txt"
+        katana -silent -list "$run_dir/live-web.txt" -rate-limit 25 -depth 2 -o "$run_dir/urls.txt"
+        nuclei -silent -list "$run_dir/live-web.txt" -severity high,critical -rate-limit 25 \
+            -o "$run_dir/nuclei-high-critical.txt"
+        ;;
+    full)
+        require_tools subfinder dnsx naabu httpx katana nuclei
+        subfinder -silent -d "$normalized" -rl 20 -o "$run_dir/subdomains.txt"
+        dnsx -silent -list "$run_dir/subdomains.txt" -rl 50 -o "$run_dir/resolved.txt"
+        naabu -silent -list "$run_dir/resolved.txt" -rate 100 -top-ports 100 \
+            -o "$run_dir/open-ports.txt"
+        httpx -silent -list "$run_dir/resolved.txt" -rate-limit 25 -o "$run_dir/live-web.txt"
+        katana -silent -list "$run_dir/live-web.txt" -rate-limit 25 -depth 2 -o "$run_dir/urls.txt"
+        nuclei -silent -list "$run_dir/live-web.txt" -severity high,critical -rate-limit 25 \
+            -o "$run_dir/nuclei-high-critical.txt"
+        ;;
+esac
+
+echo "[+] Workflow complete: $run_dir"
