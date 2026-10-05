@@ -26,6 +26,8 @@ echo " Atuin Installation"
 echo "=================================="
 echo
 
+export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
 if command -v atuin >/dev/null 2>&1; then
 
     warn "Atuin already installed."

@@ -40,20 +40,25 @@ export TMPDIR="$HOME/cargo-build"
 export CARGO_TARGET_DIR="$HOME/cargo-build/target"
 export CARGO_BUILD_JOBS=1
 
+export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+
+# crate:binary
 TOOLS=(
-    git-delta
-    bottom
-    dust
-    hyperfine
-    procs
+    git-delta:delta
+    bottom:btm
+    dust:dust
+    hyperfine:hyperfine
+    procs:procs
 )
 
-for tool in "${TOOLS[@]}"
+for entry in "${TOOLS[@]}"
 do
+    tool="${entry%%:*}"
+    binary="${entry##*:}"
 
-    if command -v "$tool" >/dev/null 2>&1; then
+    if command -v "$binary" >/dev/null 2>&1; then
 
-        warn "$tool already installed."
+        warn "$tool already installed ($binary)."
 
         continue
 

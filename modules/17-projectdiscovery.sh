@@ -37,7 +37,9 @@ command -v go >/dev/null 2>&1 || {
     exit 1
 }
 
-if ! command -v pdtm >/dev/null 2>&1; then
+if have_cmd pdtm; then
+    echo "[*] pdtm already installed, skipping."
+else
     echo "[+] Installing the official ProjectDiscovery tool manager..."
     GOBIN="$HOME/.local/bin" go install -v github.com/projectdiscovery/pdtm/cmd/pdtm@latest
 fi
@@ -47,9 +49,15 @@ command -v pdtm >/dev/null 2>&1 || {
     exit 1
 }
 
-tools="nuclei,subfinder,httpx,naabu,dnsx,katana,tlsx,uncover"
-echo "[+] Installing maintained reconnaissance tools: $tools"
-pdtm -i "$tools"
+needed=()
+for tool in nuclei subfinder httpx naabu dnsx katana tlsx uncover; do
+    have_cmd "$tool" && echo "[*] $tool already installed, skipping." || needed+=("$tool")
+done
+if [[ ${#needed[@]} -gt 0 ]]; then
+    tools="$(IFS=,; echo "${needed[*]}")"
+    echo "[+] Installing missing reconnaissance tools: $tools"
+    pdtm -i "$tools"
+fi
 
 path_block="$(mktemp -t badasskali-pdtm-path.XXXXXX)"
 trap 'rm -f -- "$path_block"' EXIT

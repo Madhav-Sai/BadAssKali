@@ -23,7 +23,8 @@ echo "       Yazi Installation"
 echo "=================================="
 echo
 
-if command -v yazi >/dev/null 2>&1; then
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+if have_cmd yazi; then
     warn "Yazi is already installed."
     yazi --version
     exit 0

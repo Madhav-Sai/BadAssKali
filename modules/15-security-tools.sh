@@ -55,7 +55,9 @@ esac
 
 for tool in "${SECURITY_TOOLS[@]}"; do
 
-    if pkg_available "$tool"; then
+    if pkg_installed "$tool"; then
+        log "$tool already installed."
+    elif pkg_available "$tool"; then
         log "Installing $tool..."
         pkg_install "$tool" || warn "$tool installation failed"
     else
@@ -66,17 +68,27 @@ done
 
 echo
 
-if command -v pipx >/dev/null 2>&1; then
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+if have_cmd certipy || have_cmd certipy-ad; then
+
+    log "Certipy already installed."
+
+elif command -v pipx >/dev/null 2>&1; then
 
     log "Installing Certipy..."
 
-    pipx install certipy-ad --force || warn "Certipy installation failed"
+    pipx install certipy-ad || warn "Certipy installation failed"
 
 fi
 
 echo
 
-if command -v cargo >/dev/null 2>&1; then
+if have_cmd rustscan; then
+
+    log "RustScan already installed."
+
+elif command -v cargo >/dev/null 2>&1; then
 
     mkdir -p "$HOME/cargo-build"
 

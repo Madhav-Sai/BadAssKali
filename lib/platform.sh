@@ -105,10 +105,40 @@ package_manager() {
     esac
 }
 
+# have_cmd NAME: like `command -v`, but also finds tools installed in the
+# per-user bin dirs that are often missing from PATH while the installer runs.
+have_cmd() {
+    local name="$1" dir
+    command -v "$name" >/dev/null 2>&1 && return 0
+    for dir in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.atuin/bin" \
+        "$HOME/.pdtm/go/bin" "$HOME/go/bin" /usr/local/bin; do
+        [[ -x "$dir/$name" ]] && return 0
+    done
+    return 1
+}
+
+# Refresh package metadata at most once per BADASSKALI_UPDATE_TTL seconds
+# (default 6h) instead of once per module. Set BADASSKALI_FORCE_UPDATE=true to override.
 pkg_update() {
     if [[ "${BADASSKALI_OFFLINE:-false}" == "true" ]]; then
         return 0
     fi
+    local stamp="${XDG_STATE_HOME:-$HOME/.local/state}/badasskali/pkg-update.stamp"
+    local ttl="${BADASSKALI_UPDATE_TTL:-21600}" now age
+    now="$(date +%s)"
+    if [[ "${BADASSKALI_FORCE_UPDATE:-false}" != "true" && -r "$stamp" ]]; then
+        age=$((now - $(cat "$stamp" 2>/dev/null || echo 0)))
+        if ((age >= 0 && age < ttl)); then
+            echo "[*] Package lists refreshed $((age / 60)) min ago; skipping update."
+            return 0
+        fi
+    fi
+    _pkg_update_now || return 1
+    mkdir -p "$(dirname "$stamp")"
+    printf '%s\n' "$now" >"$stamp"
+}
+
+_pkg_update_now() {
     case "$BAK_PACKAGE_FAMILY" in
         debian)
             if ! sudo apt-get update; then
@@ -126,6 +156,22 @@ pkg_update() {
 
 pkg_install() {
     [[ $# -gt 0 ]] || return 0
+
+    # Skip packages that are already installed (groups like @dev-tools pass through).
+    if [[ "${BADASSKALI_DOWNLOAD_ONLY:-false}" != "true" &&
+        "${BADASSKALI_OFFLINE:-false}" != "true" ]]; then
+        local wanted=() item
+        for item in "$@"; do
+            if [[ "$item" == @* ]] || ! pkg_installed "$item"; then
+                wanted+=("$item")
+            fi
+        done
+        if [[ ${#wanted[@]} -eq 0 ]]; then
+            echo "[*] Already installed, skipping: $*"
+            return 0
+        fi
+        set -- "${wanted[@]}"
+    fi
     local cache_dir="${BADASSKALI_CACHE_DIR:-$HOME/.cache/badasskali/packages}"
     mkdir -p "$cache_dir"
 

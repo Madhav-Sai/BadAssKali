@@ -41,8 +41,12 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 install_repo() {
     local name="$1" url="$2" destination="$3"
     if [[ -d "$destination/.git" ]]; then
-        log "Updating $name..."
-        git -C "$destination" pull --ff-only || warn "$name update was skipped."
+        if [[ "${BADASSKALI_UPDATE_REPOS:-false}" == "true" ]]; then
+            log "Updating $name..."
+            git -C "$destination" pull --ff-only || warn "$name update was skipped."
+        else
+            log "$name already installed, skipping (set BADASSKALI_UPDATE_REPOS=true to update)."
+        fi
     elif [[ -e "$destination" ]]; then
         warn "$name destination exists but is not a Git checkout: $destination"
     else

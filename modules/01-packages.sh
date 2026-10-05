@@ -69,6 +69,7 @@ fi
 available=()
 for package in "${packages[@]}"; do
     if [[ "$package" == @* ]] ||
+        pkg_installed "$package" ||
         pkg_available "$package"; then
         available+=("$package")
     else

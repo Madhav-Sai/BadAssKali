@@ -136,9 +136,19 @@ if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
     fail "Do not run this module as root. Run it as your normal user."
 fi
 
-if command -v ghostty >/dev/null 2>&1 && ! $FORCE; then
-    warn "Ghostty is already installed at $(command -v ghostty)."
-    ghostty --version || true
+# Look in the usual install locations too: ~/.local/bin is often missing from PATH here.
+existing_ghostty=""
+for candidate in "$(command -v ghostty 2>/dev/null || true)" \
+    "$HOME/.local/bin/ghostty" /usr/local/bin/ghostty /usr/bin/ghostty; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+        existing_ghostty="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$existing_ghostty" ]] && ! $FORCE && [[ "$METHOD" != "uninstall" ]]; then
+    warn "Ghostty is already installed at $existing_ghostty; skipping download and build."
+    "$existing_ghostty" --version || true
     info "Use --force to reinstall it."
     exit 0
 fi
@@ -442,6 +452,7 @@ mapfile -t candidate_versions < <(
     printf '%s\n' "${candidate_versions[@]}" | awk 'NF && !seen[$0]++' | sort -Vr
 )
 
+SOURCE_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/badasskali"
 version=""
 source_archive=""
 signature_file=""
@@ -463,6 +474,18 @@ for candidate in "${candidate_versions[@]}"; do
     candidate_signature="${candidate_archive}.minisig"
     info "Trying Ghostty ${candidate}..."
 
+    cached_archive="$SOURCE_CACHE/ghostty-${candidate}.tar.gz"
+    if [[ -s "$cached_archive" && -s "$cached_archive.minisig" ]] &&
+        tar -tzf "$cached_archive" >/dev/null 2>&1; then
+        info "Reusing cached download: $cached_archive"
+        cp -f "$cached_archive" "$candidate_archive"
+        cp -f "$cached_archive.minisig" "$candidate_signature"
+        version="$candidate"
+        source_archive="$candidate_archive"
+        signature_file="$candidate_signature"
+        break
+    fi
+
     if curl -fL --retry 4 --retry-all-errors --connect-timeout 20 \
         "$candidate_url" -o "$candidate_archive" &&
         tar -tzf "$candidate_archive" >/dev/null 2>&1; then
@@ -471,6 +494,9 @@ for candidate in "${candidate_versions[@]}"; do
         if curl -fL --retry 3 --retry-all-errors \
             "${candidate_url}.minisig" -o "$candidate_signature"; then
             signature_file="$candidate_signature"
+            mkdir -p "$SOURCE_CACHE"
+            cp -f "$candidate_archive" "$cached_archive" &&
+                cp -f "$candidate_signature" "$cached_archive.minisig" || true
         fi
         break
     fi

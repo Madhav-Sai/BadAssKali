@@ -21,7 +21,8 @@ echo "       TheFuck Installer"
 echo "=================================="
 echo
 
-if command -v thefuck >/dev/null 2>&1; then
+export PATH="$HOME/.local/bin:$PATH"
+if have_cmd thefuck; then
     warn "TheFuck is already installed."
     thefuck --version || true
     exit 0

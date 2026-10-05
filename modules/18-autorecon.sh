@@ -18,7 +18,7 @@ detect_platform || {
 }
 
 export PATH="$HOME/.local/bin:$PATH"
-if command -v autorecon >/dev/null 2>&1; then
+if have_cmd autorecon; then
     echo "[+] AutoRecon is already installed."
     autorecon --version 2>/dev/null || true
     exit 0
