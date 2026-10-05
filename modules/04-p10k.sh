@@ -34,6 +34,16 @@ zshrc_content="$(mktemp -t badasskali-zshrc.XXXXXX)"
 trap 'rm -f -- "$zshrc_content"' EXIT
 
 cat > "$zshrc_content" << 'EOF'
+# Fastfetch runs BEFORE the instant prompt preamble: console output after it
+# triggers Powerlevel10k's "console output during zsh initialization" warning.
+if [[ -o interactive && -t 1 ]] && command -v fastfetch >/dev/null 2>&1; then
+    fastfetch
+fi
+
+# Never show the instant-prompt console-output warning, even if other
+# config prints something during startup.
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+
 # Enable Powerlevel10k instant prompt
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
@@ -117,10 +127,6 @@ setopt HIST_REDUCE_BLANKS
 unsetopt correct
 unsetopt correctall
 
-# Fastfetch
-if command -v fastfetch >/dev/null 2>&1; then
-    fastfetch
-fi
 EOF
 
 if [[ "${BADASSKALI_CONFIG_MODE:-merge}" == "replace" ]]; then
