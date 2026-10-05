@@ -1,6 +1,26 @@
 # BadAssKali aliases and helpers. This file is managed by the installer.
 
 #################################
+# Terminal sanity (nano/vi/tmux)
+#################################
+
+# Unknown TERM (e.g. xterm-ghostty over SSH or on a fresh box) breaks nano/vi/tmux.
+if [[ -n "$TERM" ]] && (( $+commands[infocmp] )) && ! infocmp "$TERM" >/dev/null 2>&1; then
+    export TERM=xterm-256color
+fi
+
+if [[ -z "$EDITOR" ]]; then
+    if (( $+commands[nvim] )); then export EDITOR=nvim
+    elif (( $+commands[vim] )); then export EDITOR=vim
+    else export EDITOR=nano; fi
+    export VISUAL="$EDITOR"
+fi
+
+# Plain `vi` runs in vi-compatible mode (broken arrows/backspace); use vim.
+if (( $+commands[nvim] )); then alias vi='nvim' vim='nvim'
+elif (( $+commands[vim] )); then alias vi='vim'; fi
+
+#################################
 # Navigation and files
 #################################
 

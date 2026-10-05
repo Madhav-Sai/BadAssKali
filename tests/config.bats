@@ -58,3 +58,14 @@ teardown() {
     grep -Fq 'export KEEP_ME=yes' "$HOME/.zshrc"
     ! grep -Fq '# >>> BADASSKALI:shell >>>' "$HOME/.zshrc"
 }
+
+@test "terminal config fixes tmux, vim, and nano" {
+    run bash "$REPO_ROOT/modules/04-p10k.sh"
+    run bash "$REPO_ROOT/modules/13-configs.sh"
+    [ "$status" -eq 0 ]
+
+    grep -Fq 'default-terminal "tmux-256color"' "$HOME/.tmux.conf"
+    grep -Fq 'set nocompatible' "$HOME/.vimrc"
+    grep -Fq 'set mouse' "$HOME/.nanorc"
+    grep -Fq 'term = xterm-256color' "$HOME/.config/ghostty/config"
+}

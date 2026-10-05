@@ -89,8 +89,9 @@ replace_managed_block() {
     local target="$1"
     local block_name="$2"
     local content_file="$3"
-    local begin="# >>> BADASSKALI:${block_name} >>>"
-    local end="# <<< BADASSKALI:${block_name} <<<"
+    local comment="${4:-#}"
+    local begin="${comment} >>> BADASSKALI:${block_name} >>>"
+    local end="${comment} <<< BADASSKALI:${block_name} <<<"
     local temporary
 
     snapshot_ensure config

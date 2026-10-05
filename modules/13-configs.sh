@@ -21,7 +21,9 @@ mkdir -p "$HOME/htb-boxes" "$HOME/notes" "$HOME/tools" "$HOME/screenshots"
 ghostty_content="$(mktemp -t badasskali-ghostty-config.XXXXXX)"
 yazi_content="$(mktemp -t badasskali-yazi-config.XXXXXX)"
 tmux_content="$(mktemp -t badasskali-tmux-config.XXXXXX)"
-trap 'rm -f -- "$ghostty_content" "$yazi_content" "$tmux_content"' EXIT
+vim_content="$(mktemp -t badasskali-vim-config.XXXXXX)"
+nano_content="$(mktemp -t badasskali-nano-config.XXXXXX)"
+trap 'rm -f -- "$ghostty_content" "$yazi_content" "$tmux_content" "$vim_content" "$nano_content"' EXIT
 
 cat >"$ghostty_content" <<'EOF'
 font-family = JetBrainsMono Nerd Font
@@ -49,6 +51,8 @@ clipboard-read = allow
 clipboard-write = allow
 confirm-close-surface = false
 
+term = xterm-256color
+macos-option-as-alt = true
 shell-integration = zsh
 shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
 scroll-to-bottom = keystroke
@@ -90,15 +94,23 @@ EOF
 cat >"$tmux_content" <<'EOF'
 set -g mouse on
 set -g history-limit 100000
+set -g base-index 1
+setw -g pane-base-index 1
 set -g renumber-windows on
+set -g escape-time 10
+set -g focus-events on
+set -g set-clipboard on
+set -g allow-passthrough on
+set -g mode-keys vi
 set -g status-position top
 set -g status-style 'bg=#1e1e2e,fg=#cdd6f4'
 set -g status-left '#[fg=#89b4fa,bold] #S '
 set -g status-right '#[fg=#a6e3a1]%Y-%m-%d #[fg=#f9e2af]%H:%M '
 set -g pane-border-style 'fg=#45475a'
 set -g pane-active-border-style 'fg=#89b4fa'
-set -g default-terminal "screen-256color"
-set -as terminal-features ',xterm-ghostty:RGB'
+set -g default-terminal "tmux-256color"
+set -as terminal-features ',xterm-256color:RGB,xterm-ghostty:RGB'
+set -ga terminal-overrides ',*256col*:Tc'
 
 unbind C-b
 set -g prefix C-a
@@ -107,13 +119,57 @@ bind r source-file ~/.tmux.conf \; display-message "tmux config reloaded"
 bind | split-window -h -c '#{pane_current_path}'
 bind - split-window -v -c '#{pane_current_path}'
 bind c new-window -c '#{pane_current_path}'
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
 
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @plugin 'tmux-plugins/tmux-continuum'
 set -g @continuum-restore 'on'
+set -g @resurrect-capture-pane-contents 'on'
+if "test ! -d ~/.tmux/plugins/tpm" \
+    "run 'git clone --depth 1 https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm && ~/.tmux/plugins/tpm/bin/install_plugins'"
 run '~/.tmux/plugins/tpm/tpm'
+EOF
+
+cat >"$vim_content" <<'EOF'
+set nocompatible
+filetype plugin indent on
+syntax on
+set encoding=utf-8
+set backspace=indent,eol,start
+set t_Co=256
+if has('termguicolors') && $COLORTERM =~# 'truecolor\|24bit'
+    set termguicolors
+endif
+set number
+set ruler
+set showcmd
+set wildmenu
+set hlsearch incsearch ignorecase smartcase
+set expandtab shiftwidth=4 softtabstop=4
+set autoindent
+set mouse=a
+set ttimeout ttimeoutlen=10
+set hidden
+set nobackup noswapfile
+set background=dark
+EOF
+
+cat >"$nano_content" <<'EOF'
+set mouse
+set linenumbers
+set autoindent
+set tabsize 4
+set tabstospaces
+set smooth
+set softwrap
+set historylog
+include "/usr/share/nano/*.nanorc"
+include "/opt/homebrew/share/nano/*.nanorc"
 EOF
 
 if [[ "${BADASSKALI_CONFIG_MODE:-merge}" == "replace" ]]; then
@@ -121,9 +177,15 @@ if [[ "${BADASSKALI_CONFIG_MODE:-merge}" == "replace" ]]; then
     backup_path "$HOME/.tmux.conf"
     install -m 0644 "$ghostty_content" "$HOME/.config/ghostty/config"
     install -m 0644 "$tmux_content" "$HOME/.tmux.conf"
+    backup_path "$HOME/.vimrc"
+    backup_path "$HOME/.nanorc"
+    install -m 0644 "$vim_content" "$HOME/.vimrc"
+    install -m 0644 "$nano_content" "$HOME/.nanorc"
 else
     replace_managed_block "$HOME/.config/ghostty/config" terminal "$ghostty_content"
     replace_managed_block "$HOME/.tmux.conf" terminal "$tmux_content"
+    replace_managed_block "$HOME/.vimrc" terminal "$vim_content" '"'
+    replace_managed_block "$HOME/.nanorc" terminal "$nano_content"
 fi
 
 # TOML tables cannot safely be duplicated, so this file is backed up and replaced.
