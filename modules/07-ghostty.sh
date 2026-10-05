@@ -594,14 +594,33 @@ info "Source builds are slow (often 10-40 minutes on laptops) and Zig prints lit
 info "A status line is shown every 30s; press Ctrl+C to abort."
 cd "$repo_dir"
 
-# Heartbeat so a long, quiet compile never looks hung.
+# Zig reports no real progress here, so show an ESTIMATE: the last measured build
+# time on this machine, or a guess from the CPU thread count on the first run.
 build_started=$SECONDS
+time_file="${XDG_CACHE_HOME:-$HOME/.cache}/badasskali/ghostty-build-seconds"
+cpu_threads="$(nproc 2>/dev/null || echo 4)"
+expected_seconds="$(cat "$time_file" 2>/dev/null || true)"
+[[ "$expected_seconds" =~ ^[0-9]+$ && "$expected_seconds" -gt 0 ]] ||
+    expected_seconds=$((4800 / cpu_threads))
+(( expected_seconds >= 120 )) || expected_seconds=120
+info "Estimated build time: about $((expected_seconds / 60)) min (rough guess, shown as ~%)."
+
 (
     while sleep 30; do
         elapsed=$((SECONDS - build_started))
-        printf '%b[*]%b Still building Ghostty... %dm%02ds elapsed (load: %s)\n' \
-            "$BLUE" "$NC" $((elapsed / 60)) $((elapsed % 60)) \
-            "$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null || uptime | sed 's/.*load average[s]*: //')"
+        percent=$((elapsed * 100 / expected_seconds))
+        (( percent <= 99 )) || percent=99
+        filled=$((percent / 5))
+        bar="$(printf '%*s' "$filled" '' | tr ' ' '#')$(printf '%*s' "$((20 - filled))" '' | tr ' ' '.')"
+        remaining=$((expected_seconds - elapsed))
+        if (( remaining > 0 )); then
+            eta="~$(((remaining + 59) / 60)) min left"
+        else
+            eta="taking longer than estimated, still working"
+        fi
+        printf '%b[*]%b Building Ghostty [%s] ~%d%%  %dm%02ds elapsed, %s (load %s)\n' \
+            "$BLUE" "$NC" "$bar" "$percent" $((elapsed / 60)) $((elapsed % 60)) "$eta" \
+            "$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo '?')"
     done
 ) &
 heartbeat_pid=$!
@@ -612,7 +631,10 @@ trap 'kill "$heartbeat_pid" 2>/dev/null || true; cleanup' EXIT
 kill "$heartbeat_pid" 2>/dev/null || true
 wait "$heartbeat_pid" 2>/dev/null || true
 trap cleanup EXIT
-log "Ghostty build finished in $(((SECONDS - build_started) / 60)) minutes."
+build_seconds=$((SECONDS - build_started))
+mkdir -p "$(dirname "$time_file")"
+echo "$build_seconds" >"$time_file" 2>/dev/null || true
+log "Ghostty build finished in $((build_seconds / 60))m$((build_seconds % 60))s."
 
 if command -v update-desktop-database >/dev/null 2>&1; then
     desktop_dir="$install_prefix/share/applications"
