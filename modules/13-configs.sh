@@ -92,47 +92,11 @@ macro_workers = 20
 EOF
 
 cat >"$tmux_content" <<'EOF'
-set -g mouse on
-set -g history-limit 100000
-set -g base-index 1
-setw -g pane-base-index 1
-set -g renumber-windows on
-set -g escape-time 10
-set -g focus-events on
-set -g set-clipboard on
-set -g allow-passthrough on
-set -g mode-keys vi
-set -g status-position top
-set -g status-style 'bg=#1e1e2e,fg=#cdd6f4'
-set -g status-left '#[fg=#89b4fa,bold] #S '
-set -g status-right '#[fg=#a6e3a1]%Y-%m-%d #[fg=#f9e2af]%H:%M '
-set -g pane-border-style 'fg=#45475a'
-set -g pane-active-border-style 'fg=#89b4fa'
+# Stock tmux: default prefix (Ctrl+b), keys, and status bar.
+# Only the terminal type is set so colors work and nano/vim behave.
 set -g default-terminal "tmux-256color"
 set -as terminal-features ',xterm-256color:RGB,xterm-ghostty:RGB'
-set -ga terminal-overrides ',*256col*:Tc'
 
-unbind C-b
-set -g prefix C-a
-bind C-a send-prefix
-bind r source-file ~/.tmux.conf \; display-message "tmux config reloaded"
-bind | split-window -h -c '#{pane_current_path}'
-bind - split-window -v -c '#{pane_current_path}'
-bind c new-window -c '#{pane_current_path}'
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'tmux-plugins/tmux-sensible'
-set -g @plugin 'tmux-plugins/tmux-resurrect'
-set -g @plugin 'tmux-plugins/tmux-continuum'
-set -g @continuum-restore 'on'
-set -g @resurrect-capture-pane-contents 'on'
-if "test ! -d ~/.tmux/plugins/tpm" \
-    "run 'git clone --depth 1 https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm && ~/.tmux/plugins/tpm/bin/install_plugins'"
-run '~/.tmux/plugins/tpm/tpm'
 EOF
 
 cat >"$vim_content" <<'EOF'
