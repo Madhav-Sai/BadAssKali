@@ -564,8 +564,29 @@ else
 fi
 
 log "Building and installing Ghostty v${version} into $install_prefix..."
+info "Source builds are slow (often 10-40 minutes on laptops) and Zig prints little while compiling."
+info "A status line is shown every 30s; press Ctrl+C to abort."
 cd "$repo_dir"
-"${install_command[@]}"
+
+# Heartbeat so a long, quiet compile never looks hung.
+build_started=$SECONDS
+(
+    while sleep 30; do
+        elapsed=$((SECONDS - build_started))
+        printf '%b[*]%b Still building Ghostty... %dm%02ds elapsed (load: %s)\n' \
+            "$BLUE" "$NC" $((elapsed / 60)) $((elapsed % 60)) \
+            "$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null || uptime | sed 's/.*load average[s]*: //')"
+    done
+) &
+heartbeat_pid=$!
+trap 'kill "$heartbeat_pid" 2>/dev/null || true; cleanup' EXIT
+
+# --summary new lists build steps as they run; --verbose is intentionally avoided.
+"${install_command[@]}" --summary new
+kill "$heartbeat_pid" 2>/dev/null || true
+wait "$heartbeat_pid" 2>/dev/null || true
+trap cleanup EXIT
+log "Ghostty build finished in $(((SECONDS - build_started) / 60)) minutes."
 
 if command -v update-desktop-database >/dev/null 2>&1; then
     desktop_dir="$install_prefix/share/applications"
